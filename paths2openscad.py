@@ -10,6 +10,12 @@
 # Written by Daniel C. Newman ( dan dot newman at mtbaldy dot us )
 # 10 June 2012
 
+# 15 June 2012
+#   Updated by Dan Newman to handle a single level of polygon nesting.
+#   This is sufficient to handle most fonts.
+#   If you want to nest two polygons, combine them into a single path
+#   within Inkscape with "Path > Combine Path".
+
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 2 of the License, or
@@ -61,6 +67,124 @@ def parseLengthWithUnits( str ):
 		return None, None
 
 	return v, u
+
+def pointInBBox( pt, bbox ):
+
+	'''
+	Determine if the point pt=[x, y] lies on or within the bounding
+	box bbox=[xmin, xmax, ymin, ymax].
+	'''
+
+	# if ( x < xmin ) or ( x > xmax ) or ( y < ymin ) or ( y > ymax )
+	if ( pt[0] < bbox[0] ) or ( pt[0] > bbox[1] ) or \
+		( pt[1] < bbox[2] ) or ( pt[1] > bbox[3] ):
+		return False
+	else:
+		return True
+
+def bboxInBBox( bbox1, bbox2 ):
+
+	'''
+	Determine if the bounding box bbox1 lies on or within the
+	bounding box bbox2.  NOTE: we do not test for strict enclosure.
+
+	Structure of the bounding boxes is
+
+	bbox1 = [ xmin1, xmax1, ymin1, ymax1 ]
+	bbox2 = [ xmin2, xmax2, ymin2, ymax2 ]
+	'''
+
+	# if ( xmin1 < xmin2 ) or ( xmax1 > xmax2 ) or ( ymin1 < ymin2 ) or ( ymax1 > ymax2 )
+
+	if ( bbox1[0] < bbox2[0] ) or ( bbox1[1] > bbox2[1] ) or \
+		( bbox1[2] < bbox2[2] ) or ( bbox1[3] > bbox2[3] ):
+		return False
+	else:
+		return True
+
+def pointInPoly( p, poly, bbox=None ):
+
+	'''
+	Use a ray casting algorithm to see if the point p = [x, y] lies within
+	the polygon poly = [[x1,y1],[x2,y2],...].  Returns True if the point
+	is within poly, lies on an edge of poly, or is a vertex of poly.
+	'''
+
+	if ( p is None ) or ( poly is None ):
+		return False
+
+	# Check to see if the point lies outside the polygon's bounding box
+	if not bbox is None:
+		if not pointInBBox( p, bbox ):
+			return False
+
+	# Check to see if the point is a vertex
+	if p in poly:
+		return True
+
+	# Handle a boundary case associated with the point
+	# lying on a horizontal edge of the polygon
+	x = p[0]
+	y = p[1]
+	p1 = poly[0]
+	p2 = poly[1]
+	for i in range( len( poly ) ):
+		if i != 0:
+			p1 = poly[i-1]
+			p2 = poly[i]
+		if ( y == p1[1] ) and ( p1[1] == p2[1] ) and \
+			( x > min( p1[0], p2[0] ) ) and ( x < max( p1[0], p2[0] ) ):
+			return True
+
+	n = len( poly )
+	inside = False
+
+	p1_x,p1_y = poly[0]
+	for i in range( n + 1 ):
+		p2_x,p2_y = poly[i % n]
+		if y > min( p1_y, p2_y ):
+			if y <= max( p1_y, p2_y ):
+				if x <= max( p1_x, p2_x ):
+					if p1_y != p2_y:
+						intersect = p1_x + (y - p1_y) * (p2_x - p1_x) / (p2_y - p1_y)
+						if x <= intersect:
+							inside = not inside
+					else:
+						inside = not inside
+		p1_x,p1_y = p2_x,p2_y
+
+	return inside
+
+def polyInPoly( poly1, bbox1, poly2, bbox2 ):
+
+	'''
+	Determine if polygon poly2 = [[x1,y1],[x2,y2],...]
+	contains polygon poly1.
+
+	The bounding box information, bbox=[xmin, xmax, ymin, ymax]
+	is optional.  When supplied it can be used to perform rejections.
+	Note that one bounding box containing another is not sufficient
+	to imply that one polygon contains another.  It's necessary, but
+	not sufficient.
+	'''
+
+	# See if poly1's bboundin box is NOT contained by poly2's bounding box
+	# if it isn't, then poly1 cannot be contained by poly2.
+
+	if ( not bbox1 is None ) and ( not bbox2 is None ):
+		if not bboxInBBox( bbox1, bbox2 ):
+			return False
+
+	# To see if poly1 is contained by poly2, we need to ensure that each
+	# vertex of poly1 lies on or within poly2
+
+	for p in poly1:
+		if not pointInPoly( p, poly2, bbox2 ):
+			return False
+
+	# Looks like poly1 is contained on or in Poly2
+
+	return True
 
 def subdivideCubicPath( sp, flat, i=1 ):
 
@@ -137,6 +261,8 @@ class OpenSCAD( inkex.Effect ):
 		# Output file handling
 		self.call_list = []
 		self.pathid    = int( 0 )
+
+		# Output file
 		self.f = None
 
 		# For handling an SVG viewbox attribute, we will need to know the
@@ -218,7 +344,7 @@ class OpenSCAD( inkex.Effect ):
 					sy = self.docHeight / float( vinfo[3] )
 					self.docTransform = simpletransform.parseTransform( 'scale(%f,%f)' % (sx, sy) )
 
-	def getPathVertices( self, path, node=None, transform=None, find_bbox=True ):
+	def getPathVertices( self, path, node=None, transform=None ):
 
 		'''
 		Decompose the path data from an SVG element into individual
@@ -249,73 +375,164 @@ class OpenSCAD( inkex.Effect ):
 		# Now traverse the cubic super path
 		subpath_list = []
 		subpath_vertices = []
+
 		for sp in p:
+
 			# We've started a new subpath
 			# See if there is a prior subpath and whether we should keep it
 			if len( subpath_vertices ):
-				subpath_list.append( subpath_vertices )
+				subpath_list.append( [ subpath_vertices, [ sp_xmin, sp_xmax, sp_ymin, sp_ymax ] ] )
+
 			subpath_vertices = []
 			subdivideCubicPath( sp, float( self.options.smoothness ) )
-			for csp in sp:
+
+			# Note the first point of the subpath
+			first_point = sp[0][1]
+			subpath_vertices.append( first_point )
+			sp_xmin = first_point[0]
+			sp_xmax = first_point[0]
+			sp_ymin = first_point[1]
+			sp_ymax = first_point[1]
+
+			# See if the first and last points are identical
+			# OpenSCAD doesn't mind if we duplicate the first and last
+			# vertex, but our polygon in polygon algorithm may
+			n = len( sp )
+			last_point = sp[n-1][1]
+			if ( first_point[0] == last_point[0] ) and ( first_point[1] == last_point[1] ):
+				n = n - 1
+
+			# Traverse each point of the subpath
+			for csp in sp[1:n]:
+
+				# Append the vertex to our list of vertices
 				pt = csp[1]
 				subpath_vertices.append( pt )
-				if find_bbox:
-					if pt[0] < self.xmin:
-						self.xmin = pt[0]
-					elif pt[0] > self.xmax:
-						self.xmax = pt[0]
-					if pt[1] < self.ymin:
-						self.ymin = pt[1]
-					elif pt[1] > self.ymax:
-						self.ymax = pt[1]
 
-		# Handle final subpath
+				# Track the bounding box of this subpath
+				if pt[0] < sp_xmin:
+					sp_xmin = pt[0]
+				elif pt[0] > sp_xmax:
+					sp_xmax = pt[0]
+				if pt[1] < sp_ymin:
+					sp_ymin = pt[1]
+				elif pt[1] > sp_ymax:
+					sp_ymax = pt[1]
+
+			# Track the bounding box of the overall drawing
+			# This is used for centering the polygons in OpenSCAD around the (x,y) origin
+			if sp_xmin < self.xmin:
+				self.xmin = sp_xmin
+			if sp_xmax > self.xmax:
+				self.xmax = sp_xmax
+			if sp_ymin < self.ymin:
+				self.ymin = sp_ymin
+			if sp_ymax > self.ymax:
+				self.ymax = sp_ymax
+
+		# Handle the final subpath
 		if len( subpath_vertices ):
-			subpath_list.append( subpath_vertices )
+			subpath_list.append( [ subpath_vertices, [ sp_xmin, sp_xmax, sp_ymin, sp_ymax ] ] )
 
 		if len( subpath_list ) > 0:
 			self.paths[node] = subpath_list
 
 	def convertPath( self, node ):
 
+		path = self.paths[node]
+		if ( path is None ) or ( len( path ) == 0 ):
+			return
+
+		# Determine which polys contain which
+
+		contains     = [ [] for i in xrange( len( path ) ) ]
+		contained_by = [ [] for i in xrange( len( path ) ) ]
+
+		for i in range( 0, len( path ) ):
+			for j in range( i + 1, len( path ) ):
+				if polyInPoly( path[j][0], path[j][1], path[i][0], path[i][1] ):
+					# subpath i contains subpath j
+					contains[i].append( j )
+					# subpath j is contained in subpath i
+					contained_by[j].append( i )
+				elif polyInPoly( path[i][0], path[i][1], path[j][0], path[j][1] ):
+					# subpath j contains subpath i
+					contains[j].append( i )
+					# subpath i is containd in subpath j
+					contained_by[i].append( j )
+
 		# Generate an OpenSCAD module for this path
 		id = node.get ( 'id', '' )
 		if ( id is None ) or ( id == '' ):
 			id = str( self.pathid ) + 'x'
 			self.pathid += 1
-		self.f.write( 'module path_' + id + '(h)\n{\n' )
+		self.f.write( 'module poly_' + id + '(h)\n{\n' )
+		self.f.write( '  scale([25.4/90, -25.4/90, 1]) union()\n  {\n' )
 
 		# And add the call to the call list
-		self.call_list.append( 'path_%s(%s);\n' % ( id, self.options.height ) )
+		self.call_list.append( 'poly_%s(%s);\n' % ( id, self.options.height ) )
 
-		for subpath in self.paths[node]:
+		for i in range( 0, len( path ) ):
 
-			# A new polygon for a new subpath
-			poly = \
-				'  scale([25.4/90, -25.4/90, 1])\n' + \
-				'    linear_extrude(height=h)\n' + \
-				'      polygon(points=['
+			# Skip this subpath if it is contained by another one
+			if len( contained_by[i] ) != 0:
+				continue
 
-			firstPoint = subpath[0]
-			lastPoint = None
-			for point in subpath:
-				poly += '[%f,%f],' % ( ( point[0] - self.cx ), ( point[1] - self.cy ) )
-				lastPoint = point
+			subpath = path[i][0]
+			bbox    = path[i][1]
 
-			# Close the path if it isn't already closed
-			if ( firstPoint != lastPoint ):
-				poly += '[%f,%f],' % ( ( firstPoint[0] - self.cx ), ( firstPoint[1] - self.cy ) )
+			if len( contains[i] ) == 0:
 
-			poly = poly[:-1]
-			poly += ']);\n'
-			self.f.write( poly )
+				# This subpath does not contain any subpaths
+				poly = \
+					'    linear_extrude(height=h)\n' + \
+					'      polygon(['
+
+				for point in subpath:
+					poly += '[%f,%f],' % ( ( point[0] - self.cx ), ( point[1] - self.cy ) )
+
+				poly = poly[:-1]
+				poly += ']);\n'
+				self.f.write( poly )
+
+			else:
+
+				# This subpath contains other subpaths
+				poly = \
+					'    difference()\n' + \
+					'    {\n' + \
+					'       linear_extrude(height=h)\n' + \
+					'         polygon(['
+
+				for point in subpath:
+					poly += '[%f,%f],' % ( ( point[0] - self.cx ), ( point[1] - self.cy ) )
+
+				poly = poly[:-1]
+				poly += ']);\n'
+				self.f.write( poly )
+
+				for j in contains[i]:
+
+					poly = \
+						'       translate([0, 0, -fudge])\n' + \
+						'         linear_extrude(height=h+2*fudge)\n' + \
+						'           polygon(['
+
+					for point in path[j][0]:
+						poly += '[%f,%f],' % ( ( point[0] - self.cx ), ( point[1] - self.cy ) )
+
+					poly = poly[:-1]
+					poly += ']);\n'
+					self.f.write( poly )
+
+				self.f.write( '    }\n' )
 
 		# End the module
-		self.f.write( '}\n' )
+		self.f.write( '  }\n}\n' )
 
 	def recursivelyTraverseSvg( self, aNodeList,
 		matCurrent=[[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]],
-		parent_visibility='visible', find_bbox=True ):
+		parent_visibility='visible' ):
 
 		'''
 		[ This too is largely lifted from eggbot.py ]
@@ -350,7 +567,7 @@ class OpenSCAD( inkex.Effect ):
 
 			if node.tag == inkex.addNS( 'g', 'svg' ) or node.tag == 'g':
 
-				self.recursivelyTraverseSvg( node, matNew, v, find_bbox )
+				self.recursivelyTraverseSvg( node, matNew, v )
 
 			elif node.tag == inkex.addNS( 'use', 'svg' ) or node.tag == 'use':
 
@@ -383,13 +600,13 @@ class OpenSCAD( inkex.Effect ):
 					else:
 						matNew2 = matNew
 					v = node.get( 'visibility', v )
-					self.recursivelyTraverseSvg( refnode, matNew2, v, find_bbox )
+					self.recursivelyTraverseSvg( refnode, matNew2, v )
 
 			elif node.tag == inkex.addNS( 'path', 'svg' ):
 
 				path_data = node.get( 'd')
 				if path_data:
-					self.getPathVertices( path_data, node, matNew, find_bbox )
+					self.getPathVertices( path_data, node, matNew )
 
 			elif node.tag == inkex.addNS( 'rect', 'svg' ) or node.tag == 'rect':
 
@@ -417,7 +634,7 @@ class OpenSCAD( inkex.Effect ):
 				a.append( [' l ', [0, h]] )
 				a.append( [' l ', [-w, 0]] )
 				a.append( [' Z', []] )
-				self.getPathVertices( simplepath.formatPath( a ), node, matNew, find_bbox )
+				self.getPathVertices( simplepath.formatPath( a ), node, matNew )
 
 			elif node.tag == inkex.addNS( 'line', 'svg' ) or node.tag == 'line':
 
@@ -438,7 +655,7 @@ class OpenSCAD( inkex.Effect ):
 				a = []
 				a.append( ['M ', [x1, y1]] )
 				a.append( [' L ', [x2, y2]] )
-				self.getPathVertices( simplepath.formatPath( a ), node, matNew, find_bbox )
+				self.getPathVertices( simplepath.formatPath( a ), node, matNew )
 
 			elif node.tag == inkex.addNS( 'polyline', 'svg' ) or node.tag == 'polyline':
 
@@ -458,7 +675,7 @@ class OpenSCAD( inkex.Effect ):
 
 				pa = pl.split()
 				d = "".join( ["M " + pa[i] if i == 0 else " L " + pa[i] for i in range( 0, len( pa ) )] )
-				self.getPathVertices( d, node, matNew, find_bbox )
+				self.getPathVertices( d, node, matNew )
 
 			elif node.tag == inkex.addNS( 'polygon', 'svg' ) or node.tag == 'polygon':
 
@@ -479,7 +696,7 @@ class OpenSCAD( inkex.Effect ):
 				pa = pl.split()
 				d = "".join( ["M " + pa[i] if i == 0 else " L " + pa[i] for i in range( 0, len( pa ) )] )
 				d += " Z"
-				self.getPathVertices( d, node, matNew, find_bbox )
+				self.getPathVertices( d, node, matNew )
 
 			elif node.tag == inkex.addNS( 'ellipse', 'svg' ) or \
 				node.tag == 'ellipse' or \
@@ -520,7 +737,7 @@ class OpenSCAD( inkex.Effect ):
 						'0 1 0 %f,%f ' % ( x2, cy ) + \
 						'A %f,%f ' % ( rx, ry ) + \
 						'0 1 0 %f,%f' % ( x1, cy )
-					self.mapPathVertices( d, node, matNew, find_bbox )
+					self.mapPathVertices( d, node, matNew )
 
 			elif node.tag == inkex.addNS( 'pattern', 'svg' ) or node.tag == 'pattern':
 
@@ -646,27 +863,39 @@ class OpenSCAD( inkex.Effect ):
 			# Traverse the selected objects
 			for id in self.options.ids:
 				transform = self.recursivelyGetEnclosingTransform( self.selected[id] )
-				self.recursivelyTraverseSvg( [self.selected[id]], transform, find_bbox=True )
+				self.recursivelyTraverseSvg( [self.selected[id]], transform )
 		else:
 			# Traverse the entire document building new, transformed paths
-			self.recursivelyTraverseSvg( self.document.getroot(), self.docTransform, find_bbox=True )
+			self.recursivelyTraverseSvg( self.document.getroot(), self.docTransform )
 
+		# Determine the center of the drawing's bounding box
 		self.cx = self.xmin + ( self.xmax - self.xmin ) / 2.0
 		self.cy = self.ymin + ( self.ymax - self.ymin ) / 2.0
 
+		# Determine which polygons lie entirely within other polygons
 		try:
-			self.f = open( os.path.expanduser( self.options.fname ), 'w')
+			if '/' == os.sep:
+				self.f = open( os.path.expanduser( self.options.fname ), 'w')
+			else:
+				self.f = open( os.path.expanduser( self.options.fname ).replace('/', os.sep), 'w')
 
-			# Now that we know the x-axis extrema, we can remap the data
-			# Had we know the x-axis extrema in advance (i.e., operating
-			# on the entire document), then we could have done the mapping
-			# at the same time we "rendered" everything to line segments.
+			self.f.write('''
+// Module names are of the form poly_<inkscape-path-id>().  As a result,
+// you can associate a polygon in this OpenSCAD program with the corresponding
+// SVG element in the Inkscape document by looking for the XML element with
+// the attribute id=\"inkscape-path-id\".
+
+// fudge value is used to ensure that subtracted solids are a tad taller
+// in the z dimension than the polygon being subtracted from.  This helps
+// keep the resulting .stl file manifold.
+fudge = 0.1;
+''' )
 
 			for key in self.paths:
 				self.f.write( '\n' )
 				self.convertPath( key )
 
-			# Now output the list of modules to call
+		# Now output the list of modules to call
 			self.f.write( '\n' )
 			for call in self.call_list:
 				self.f.write( call )
