@@ -274,6 +274,10 @@ class OpenSCAD( inkex.Effect ):
 		self.docHeight = float( DEFAULT_HEIGHT )
 		self.docTransform = [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]]
 
+		# Dictionary of warnings issued.  This to prevent from warning
+		# multiple times about the same problem
+		self.warnings = {}
+
 	def getLength( self, name, default ):
 
 		'''
