@@ -13,22 +13,24 @@
 <param name="tab" type="notebook">
   <page name="splash" _gui-text="Paths to OpenSCAD">
     <_param name="header" type="description" xml:space="preserve">
+
+
 The height parameter specifies how
 high in millimeters to extrude the
 polygons.
 
+
 The smoothing parameter describes
 how smoothly to render curves.  Use
 smaller values for smoother curves.
+
+
+
+
 </_param>
     <param name="fname" type="string" _gui-text="Output file">~/inkscape.scad</param>
     <param name="height" type="float" min="0" max="1000" precision="2" _gui-text="Height (mm)">5.0</param>
     <param name="smoothness" type="float" min="0.0001" max="5" _gui-text="Smoothing">0.2</param>
-  <_param name="footer" type="description" xml:space="preserve">
-
-
-
-</_param>
   </page>
   <page name="info" _gui-text="About...">
     <_param name="aboutpage" type="description" xml:space="preserve">
