@@ -46,8 +46,8 @@ DEFAULT_WIDTH = 100
 DEFAULT_HEIGHT = 100
 RE_AUTO_HEIGHT = re.compile(r".*?_(\d+(?:_\d+)?)_mm$")
 
-def parseLengthWithUnits( str ):
 
+def parseLengthWithUnits(str):
     '''
     Parse an SVG value which may or may not have units attached
     This version is greatly simplified in that it only allows: no units,
@@ -65,28 +65,28 @@ def parseLengthWithUnits( str ):
         s = s[:-1]
 
     try:
-        v = float( s )
+        v = float(s)
     except:
         return None, None
 
     return v, u
 
-def pointInBBox( pt, bbox ):
 
+def pointInBBox(pt, bbox):
     '''
     Determine if the point pt=[x, y] lies on or within the bounding
     box bbox=[xmin, xmax, ymin, ymax].
     '''
 
     # if ( x < xmin ) or ( x > xmax ) or ( y < ymin ) or ( y > ymax )
-    if ( pt[0] < bbox[0] ) or ( pt[0] > bbox[1] ) or \
-        ( pt[1] < bbox[2] ) or ( pt[1] > bbox[3] ):
+    if (pt[0] < bbox[0]) or (pt[0] > bbox[1]) or \
+            (pt[1] < bbox[2]) or (pt[1] > bbox[3]):
         return False
     else:
         return True
 
-def bboxInBBox( bbox1, bbox2 ):
 
+def bboxInBBox(bbox1, bbox2):
     '''
     Determine if the bounding box bbox1 lies on or within the
     bounding box bbox2.  NOTE: we do not test for strict enclosure.
@@ -99,26 +99,26 @@ def bboxInBBox( bbox1, bbox2 ):
 
     # if ( xmin1 < xmin2 ) or ( xmax1 > xmax2 ) or ( ymin1 < ymin2 ) or ( ymax1 > ymax2 )
 
-    if ( bbox1[0] < bbox2[0] ) or ( bbox1[1] > bbox2[1] ) or \
-        ( bbox1[2] < bbox2[2] ) or ( bbox1[3] > bbox2[3] ):
+    if (bbox1[0] < bbox2[0]) or (bbox1[1] > bbox2[1]) or \
+            (bbox1[2] < bbox2[2]) or (bbox1[3] > bbox2[3]):
         return False
     else:
         return True
 
-def pointInPoly( p, poly, bbox=None ):
 
+def pointInPoly(p, poly, bbox=None):
     '''
     Use a ray casting algorithm to see if the point p = [x, y] lies within
     the polygon poly = [[x1,y1],[x2,y2],...].  Returns True if the point
     is within poly, lies on an edge of poly, or is a vertex of poly.
     '''
 
-    if ( p is None ) or ( poly is None ):
+    if (p is None) or (poly is None):
         return False
 
     # Check to see if the point lies outside the polygon's bounding box
-    if not bbox is None:
-        if not pointInBBox( p, bbox ):
+    if bbox is not None:
+        if not pointInBBox(p, bbox):
             return False
 
     # Check to see if the point is a vertex
@@ -131,35 +131,35 @@ def pointInPoly( p, poly, bbox=None ):
     y = p[1]
     p1 = poly[0]
     p2 = poly[1]
-    for i in range( len( poly ) ):
+    for i in range(len(poly)):
         if i != 0:
-            p1 = poly[i-1]
+            p1 = poly[i - 1]
             p2 = poly[i]
-        if ( y == p1[1] ) and ( p1[1] == p2[1] ) and \
-            ( x > min( p1[0], p2[0] ) ) and ( x < max( p1[0], p2[0] ) ):
+        if (y == p1[1]) and (p1[1] == p2[1]) and \
+                (x > min(p1[0], p2[0])) and (x < max(p1[0], p2[0])):
             return True
 
-    n = len( poly )
+    n = len(poly)
     inside = False
 
-    p1_x,p1_y = poly[0]
-    for i in range( n + 1 ):
-        p2_x,p2_y = poly[i % n]
-        if y > min( p1_y, p2_y ):
-            if y <= max( p1_y, p2_y ):
-                if x <= max( p1_x, p2_x ):
+    p1_x, p1_y = poly[0]
+    for i in range(n + 1):
+        p2_x, p2_y = poly[i % n]
+        if y > min(p1_y, p2_y):
+            if y <= max(p1_y, p2_y):
+                if x <= max(p1_x, p2_x):
                     if p1_y != p2_y:
                         intersect = p1_x + (y - p1_y) * (p2_x - p1_x) / (p2_y - p1_y)
                         if x <= intersect:
                             inside = not inside
                     else:
                         inside = not inside
-        p1_x,p1_y = p2_x,p2_y
+        p1_x, p1_y = p2_x, p2_y
 
     return inside
 
-def polyInPoly( poly1, bbox1, poly2, bbox2 ):
 
+def polyInPoly(poly1, bbox1, poly2, bbox2):
     '''
     Determine if polygon poly2 = [[x1,y1],[x2,y2],...]
     contains polygon poly1.
@@ -174,23 +174,23 @@ def polyInPoly( poly1, bbox1, poly2, bbox2 ):
     # See if poly1's bboundin box is NOT contained by poly2's bounding box
     # if it isn't, then poly1 cannot be contained by poly2.
 
-    if ( not bbox1 is None ) and ( not bbox2 is None ):
-        if not bboxInBBox( bbox1, bbox2 ):
+    if (bbox1 is not None) and (bbox2 is not None):
+        if not bboxInBBox(bbox1, bbox2):
             return False
 
     # To see if poly1 is contained by poly2, we need to ensure that each
     # vertex of poly1 lies on or within poly2
 
     for p in poly1:
-        if not pointInPoly( p, poly2, bbox2 ):
+        if not pointInPoly(p, poly2, bbox2):
             return False
 
     # Looks like poly1 is contained on or in Poly2
 
     return True
 
-def subdivideCubicPath( sp, flat, i=1 ):
 
+def subdivideCubicPath(sp, flat, i=1):
     '''
     [ Lifted from eggbot.py with impunity ]
 
@@ -205,7 +205,7 @@ def subdivideCubicPath( sp, flat, i=1 ):
 
     while True:
         while True:
-            if i >= len( sp ):
+            if i >= len(sp):
                 return
 
             p0 = sp[i - 1][1]
@@ -213,51 +213,51 @@ def subdivideCubicPath( sp, flat, i=1 ):
             p2 = sp[i][0]
             p3 = sp[i][1]
 
-            b = ( p0, p1, p2, p3 )
+            b = (p0, p1, p2, p3)
 
-            if cspsubdiv.maxdist( b ) > flat:
+            if cspsubdiv.maxdist(b) > flat:
                 break
 
             i += 1
 
-        one, two = bezmisc.beziersplitatt( b, 0.5 )
+        one, two = bezmisc.beziersplitatt(b, 0.5)
         sp[i - 1][2] = one[1]
         sp[i][0] = two[2]
         p = [one[2], one[3], two[1]]
         sp[i:1] = [p]
 
-class OpenSCAD( inkex.Effect ):
 
-    def __init__( self ):
+class OpenSCAD(inkex.Effect):
+    def __init__(self):
 
-        inkex.Effect.__init__( self )
+        inkex.Effect.__init__(self)
 
-        self.OptionParser.add_option( "--tab",  #NOTE: value is not used.
-            action="store", type="string",
-            dest="tab", default="splash",
-            help="The active tab when Apply was pressed" )
+        self.OptionParser.add_option("--tab",  # NOTE: value is not used.
+                                     action="store", type="string",
+                                     dest="tab", default="splash",
+                                     help="The active tab when Apply was pressed")
 
         self.OptionParser.add_option('--smoothness', dest='smoothness',
-            type='float', default=float( 0.2 ), action='store',
-            help='Curve smoothing (less for more)' )
+                                     type='float', default=float(0.2), action='store',
+                                     help='Curve smoothing (less for more)')
 
         self.OptionParser.add_option('--height', dest='height',
-            type='string', default='5', action='store',
-            help='Height (mm)' )
+                                     type='string', default='5', action='store',
+                                     help='Height (mm)')
 
         self.OptionParser.add_option('--fname', dest='fname',
-            type='string', default='~/inkscape.scad',
-            action='store',
-            help='Curve smoothing (less for more)' )
+                                     type='string', default='~/inkscape.scad',
+                                     action='store',
+                                     help='Curve smoothing (less for more)')
 
         self.OptionParser.add_option('--autoheight', dest='autoheight',
-            type='string', default='false', action='store',
-            help='Set heights automatically' )
+                                     type='string', default='false', action='store',
+                                     help='Set heights automatically')
 
-        self.cx = float( DEFAULT_WIDTH ) / 2.0
-        self.cy = float( DEFAULT_HEIGHT ) / 2.0
-        self.xmin, self.xmax = ( 1.0E70, -1.0E70 )
-        self.ymin, self.ymax = ( 1.0E70, -1.0E70 )
+        self.cx = float(DEFAULT_WIDTH) / 2.0
+        self.cy = float(DEFAULT_HEIGHT) / 2.0
+        self.xmin, self.xmax = (1.0E70, -1.0E70)
+        self.ymin, self.ymax = (1.0E70, -1.0E70)
 
         # Dictionary of paths we will construct.  It's keyed by the SVG node
         # it came from.  Such keying isn't too useful in this specific case,
@@ -267,7 +267,7 @@ class OpenSCAD( inkex.Effect ):
 
         # Output file handling
         self.call_list = []
-        self.pathid    = int( 0 )
+        self.pathid = int(0)
 
         # Output file
         self.f = None
@@ -276,15 +276,15 @@ class OpenSCAD( inkex.Effect ):
         # values of the document's <svg> width and height attributes as well
         # as establishing a transform from the viewbox to the display.
 
-        self.docWidth  = float( DEFAULT_WIDTH )
-        self.docHeight = float( DEFAULT_HEIGHT )
+        self.docWidth = float(DEFAULT_WIDTH)
+        self.docHeight = float(DEFAULT_HEIGHT)
         self.docTransform = [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]]
 
         # Dictionary of warnings issued.  This to prevent from warning
         # multiple times about the same problem
         self.warnings = {}
 
-    def getLength( self, name, default ):
+    def getLength(self, name, default):
 
         '''
         Get the <svg> attribute with name "name" and default value "default"
@@ -294,38 +294,38 @@ class OpenSCAD( inkex.Effect ):
         Note that SVG defines 90 px = 1 in = 25.4 mm.
         '''
 
-        str = self.document.getroot().get( name )
+        str = self.document.getroot().get(name)
         if str:
-            v, u = parseLengthWithUnits( str )
+            v, u = parseLengthWithUnits(str)
             if not v:
                 # Couldn't parse the value
                 return None
-            elif ( u == 'mm' ):
-                return float( v ) * ( 90.0 / 25.4 )
-            elif ( u == 'cm' ):
-                return float( v ) * ( 90.0 * 10.0 / 25.4 )
-            elif ( u == 'm' ):
-                return float( v ) * ( 90.0 * 1000.0 / 25.4 )
-            elif ( u == 'in' ):
-                return float( v ) * 90.0
-            elif ( u == 'ft' ):
-                return float( v ) * 12.0 * 90.0
-            elif ( u == 'pt' ):
+            elif (u == 'mm'):
+                return float(v) * (90.0 / 25.4)
+            elif (u == 'cm'):
+                return float(v) * (90.0 * 10.0 / 25.4)
+            elif (u == 'm'):
+                return float(v) * (90.0 * 1000.0 / 25.4)
+            elif (u == 'in'):
+                return float(v) * 90.0
+            elif (u == 'ft'):
+                return float(v) * 12.0 * 90.0
+            elif (u == 'pt'):
                 # Use modern "Postscript" points of 72 pt = 1 in instead
                 # of the traditional 72.27 pt = 1 in
-                return float( v ) * ( 90.0 / 72.0 )
-            elif ( u == 'pc' ):
-                return float( v ) * ( 90.0 / 6.0 )
-            elif ( u == 'px' ):
-                return float( v )
+                return float(v) * (90.0 / 72.0)
+            elif (u == 'pc'):
+                return float(v) * (90.0 / 6.0)
+            elif (u == 'px'):
+                return float(v)
             else:
                 # Unsupported units
                 return None
         else:
             # No width specified; assume the default value
-            return float( default )
+            return float(default)
 
-    def getDocProps( self ):
+    def getDocProps(self):
 
         '''
         Get the document's height and width attributes from the <svg> tag.
@@ -333,29 +333,29 @@ class OpenSCAD( inkex.Effect ):
         expressed in units of percentages.
         '''
 
-        self.docHeight = self.getLength( 'height', DEFAULT_HEIGHT )
-        self.docWidth = self.getLength( 'width', DEFAULT_WIDTH )
-        if ( self.docHeight == None ) or ( self.docWidth == None ):
+        self.docHeight = self.getLength('height', DEFAULT_HEIGHT)
+        self.docWidth = self.getLength('width', DEFAULT_WIDTH)
+        if (self.docHeight is None) or (self.docWidth is None):
             return False
         else:
             return True
 
-    def handleViewBox( self ):
+    def handleViewBox(self):
 
         '''
         Set up the document-wide transform in the event that the document has an SVG viewbox
         '''
 
         if self.getDocProps():
-            viewbox = self.document.getroot().get( 'viewBox' )
+            viewbox = self.document.getroot().get('viewBox')
             if viewbox:
-                vinfo = viewbox.strip().replace( ',', ' ' ).split( ' ' )
-                if ( vinfo[2] != 0 ) and ( vinfo[3] != 0 ):
-                    sx = self.docWidth / float( vinfo[2] )
-                    sy = self.docHeight / float( vinfo[3] )
-                    self.docTransform = simpletransform.parseTransform( 'scale(%f,%f)' % (sx, sy) )
+                vinfo = viewbox.strip().replace(',', ' ').split(' ')
+                if (vinfo[2] != 0) and (vinfo[3] != 0):
+                    sx = self.docWidth / float(vinfo[2])
+                    sy = self.docHeight / float(vinfo[3])
+                    self.docTransform = simpletransform.parseTransform('scale(%f,%f)' % (sx, sy))
 
-    def getPathVertices( self, path, node=None, transform=None ):
+    def getPathVertices(self, path, node=None, transform=None):
 
         '''
         Decompose the path data from an SVG element into individual
@@ -364,24 +364,24 @@ class OpenSCAD( inkex.Effect ):
         vertices.
         '''
 
-        if ( not path ) or ( len( path ) == 0 ):
+        if (not path) or (len(path) == 0):
             # Nothing to do
             return None
 
         # parsePath() may raise an exception.  This is okay
-        sp = simplepath.parsePath( path )
-        if ( not sp ) or ( len( sp ) == 0 ):
+        sp = simplepath.parsePath(path)
+        if (not sp) or (len(sp) == 0):
             # Path must have been devoid of any real content
             return None
 
         # Get a cubic super path
-        p = cubicsuperpath.CubicSuperPath( sp )
-        if ( not p ) or ( len( p ) == 0 ):
+        p = cubicsuperpath.CubicSuperPath(sp)
+        if (not p) or (len(p) == 0):
             # Probably never happens, but...
             return None
 
         if transform:
-            simpletransform.applyTransformToPath( transform, p )
+            simpletransform.applyTransformToPath(transform, p)
 
         # Now traverse the cubic super path
         subpath_list = []
@@ -391,15 +391,15 @@ class OpenSCAD( inkex.Effect ):
 
             # We've started a new subpath
             # See if there is a prior subpath and whether we should keep it
-            if len( subpath_vertices ):
-                subpath_list.append( [ subpath_vertices, [ sp_xmin, sp_xmax, sp_ymin, sp_ymax ] ] )
+            if len(subpath_vertices):
+                subpath_list.append([subpath_vertices, [sp_xmin, sp_xmax, sp_ymin, sp_ymax]])
 
             subpath_vertices = []
-            subdivideCubicPath( sp, float( self.options.smoothness ) )
+            subdivideCubicPath(sp, float(self.options.smoothness))
 
             # Note the first point of the subpath
             first_point = sp[0][1]
-            subpath_vertices.append( first_point )
+            subpath_vertices.append(first_point)
             sp_xmin = first_point[0]
             sp_xmax = first_point[0]
             sp_ymin = first_point[1]
@@ -408,9 +408,9 @@ class OpenSCAD( inkex.Effect ):
             # See if the first and last points are identical
             # OpenSCAD doesn't mind if we duplicate the first and last
             # vertex, but our polygon in polygon algorithm may
-            n = len( sp )
-            last_point = sp[n-1][1]
-            if ( first_point[0] == last_point[0] ) and ( first_point[1] == last_point[1] ):
+            n = len(sp)
+            last_point = sp[n - 1][1]
+            if (first_point[0] == last_point[0]) and (first_point[1] == last_point[1]):
                 n = n - 1
 
             # Traverse each point of the subpath
@@ -418,7 +418,7 @@ class OpenSCAD( inkex.Effect ):
 
                 # Append the vertex to our list of vertices
                 pt = csp[1]
-                subpath_vertices.append( pt )
+                subpath_vertices.append(pt)
 
                 # Track the bounding box of this subpath
                 if pt[0] < sp_xmin:
@@ -442,45 +442,45 @@ class OpenSCAD( inkex.Effect ):
                 self.ymax = sp_ymax
 
         # Handle the final subpath
-        if len( subpath_vertices ):
-            subpath_list.append( [ subpath_vertices, [ sp_xmin, sp_xmax, sp_ymin, sp_ymax ] ] )
+        if len(subpath_vertices):
+            subpath_list.append([subpath_vertices, [sp_xmin, sp_xmax, sp_ymin, sp_ymax]])
 
-        if len( subpath_list ) > 0:
+        if len(subpath_list) > 0:
             self.paths[node] = subpath_list
 
-    def convertPath( self, node ):
+    def convertPath(self, node):
 
         path = self.paths[node]
-        if ( path is None ) or ( len( path ) == 0 ):
+        if (path is None) or (len(path) == 0):
             return
 
         # Determine which polys contain which
 
-        contains     = [ [] for i in xrange( len( path ) ) ]
-        contained_by = [ [] for i in xrange( len( path ) ) ]
+        contains = [[] for i in xrange(len(path))]
+        contained_by = [[] for i in xrange(len(path))]
 
-        for i in range( 0, len( path ) ):
-            for j in range( i + 1, len( path ) ):
-                if polyInPoly( path[j][0], path[j][1], path[i][0], path[i][1] ):
+        for i in range(0, len(path)):
+            for j in range(i + 1, len(path)):
+                if polyInPoly(path[j][0], path[j][1], path[i][0], path[i][1]):
                     # subpath i contains subpath j
-                    contains[i].append( j )
+                    contains[i].append(j)
                     # subpath j is contained in subpath i
-                    contained_by[j].append( i )
-                elif polyInPoly( path[i][0], path[i][1], path[j][0], path[j][1] ):
+                    contained_by[j].append(i)
+                elif polyInPoly(path[i][0], path[i][1], path[j][0], path[j][1]):
                     # subpath j contains subpath i
-                    contains[j].append( i )
+                    contains[j].append(i)
                     # subpath i is containd in subpath j
-                    contained_by[i].append( j )
+                    contained_by[i].append(j)
 
         # Generate an OpenSCAD module for this path
-        id = node.get ( 'id', '' )
-        if ( id is None ) or ( id == '' ):
-            id = str( self.pathid ) + 'x'
+        id = node.get('id', '')
+        if (id is None) or (id == ''):
+            id = str(self.pathid) + 'x'
             self.pathid += 1
         else:
-            id = re.sub( '[^A-Za-z0-9_]+', '', id )
-        self.f.write( 'module poly_' + id + '(h)\n{\n' )
-        self.f.write( '  scale([25.4/90, -25.4/90, 1]) union()\n  {\n' )
+            id = re.sub('[^A-Za-z0-9_]+', '', id)
+        self.f.write('module poly_' + id + '(h)\n{\n')
+        self.f.write('  scale([25.4/90, -25.4/90, 1]) union()\n  {\n')
 
         # And add the call to the call list
         # Try and set auto height
@@ -492,18 +492,18 @@ class OpenSCAD( inkex.Effect ):
             except IndexError:
                 pass
 
-        self.call_list.append( 'poly_%s(%s);\n' % ( id, height ) )
+        self.call_list.append('poly_%s(%s);\n' % (id, height))
 
-        for i in range( 0, len( path ) ):
+        for i in range(0, len(path)):
 
             # Skip this subpath if it is contained by another one
-            if len( contained_by[i] ) != 0:
+            if len(contained_by[i]) != 0:
                 continue
 
             subpath = path[i][0]
-            bbox    = path[i][1]
+            bbox = path[i][1]
 
-            if len( contains[i] ) == 0:
+            if len(contains[i]) == 0:
 
                 # This subpath does not contain any subpaths
                 poly = \
@@ -511,11 +511,11 @@ class OpenSCAD( inkex.Effect ):
                     '      polygon(['
 
                 for point in subpath:
-                    poly += '[%f,%f],' % ( ( point[0] - self.cx ), ( point[1] - self.cy ) )
+                    poly += '[%f,%f],' % ((point[0] - self.cx), (point[1] - self.cy))
 
                 poly = poly[:-1]
                 poly += ']);\n'
-                self.f.write( poly )
+                self.f.write(poly)
 
             else:
 
@@ -527,11 +527,11 @@ class OpenSCAD( inkex.Effect ):
                     '         polygon(['
 
                 for point in subpath:
-                    poly += '[%f,%f],' % ( ( point[0] - self.cx ), ( point[1] - self.cy ) )
+                    poly += '[%f,%f],' % ((point[0] - self.cx), (point[1] - self.cy))
 
                 poly = poly[:-1]
                 poly += ']);\n'
-                self.f.write( poly )
+                self.f.write(poly)
 
                 for j in contains[i]:
 
@@ -541,20 +541,20 @@ class OpenSCAD( inkex.Effect ):
                         '           polygon(['
 
                     for point in path[j][0]:
-                        poly += '[%f,%f],' % ( ( point[0] - self.cx ), ( point[1] - self.cy ) )
+                        poly += '[%f,%f],' % ((point[0] - self.cx), (point[1] - self.cy))
 
                     poly = poly[:-1]
                     poly += ']);\n'
-                    self.f.write( poly )
+                    self.f.write(poly)
 
-                self.f.write( '    }\n' )
+                self.f.write('    }\n')
 
         # End the module
-        self.f.write( '  }\n}\n' )
+        self.f.write('  }\n}\n')
 
-    def recursivelyTraverseSvg( self, aNodeList,
-        matCurrent=[[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]],
-        parent_visibility='visible' ):
+    def recursivelyTraverseSvg(self, aNodeList,
+                               matCurrent=[[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]],
+                               parent_visibility='visible'):
 
         '''
         [ This too is largely lifted from eggbot.py ]
@@ -578,20 +578,20 @@ class OpenSCAD( inkex.Effect ):
         for node in aNodeList:
 
             # Ignore invisible nodes
-            v = node.get( 'visibility', parent_visibility )
+            v = node.get('visibility', parent_visibility)
             if v == 'inherit':
                 v = parent_visibility
             if v == 'hidden' or v == 'collapse':
                 pass
 
             # First apply the current matrix transform to this node's tranform
-            matNew = simpletransform.composeTransform( matCurrent, simpletransform.parseTransform( node.get( "transform" ) ) )
+            matNew = simpletransform.composeTransform(matCurrent, simpletransform.parseTransform(node.get("transform")))
 
-            if node.tag == inkex.addNS( 'g', 'svg' ) or node.tag == 'g':
+            if node.tag == inkex.addNS('g', 'svg') or node.tag == 'g':
 
-                self.recursivelyTraverseSvg( node, matNew, v )
+                self.recursivelyTraverseSvg(node, matNew, v)
 
-            elif node.tag == inkex.addNS( 'use', 'svg' ) or node.tag == 'use':
+            elif node.tag == inkex.addNS('use', 'svg') or node.tag == 'use':
 
                 # A <use> element refers to another SVG element via an xlink:href="#blah"
                 # attribute.  We will handle the element by doing an XPath search through
@@ -606,31 +606,31 @@ class OpenSCAD( inkex.Effect ):
                 #     for processing the referenced element.  The referenced element is
                 #     hidden only if its visibility is "inherit" or "hidden".
 
-                refid = node.get( inkex.addNS( 'href', 'xlink' ) )
+                refid = node.get(inkex.addNS('href', 'xlink'))
                 if not refid:
                     pass
 
                 # [1:] to ignore leading '#' in reference
                 path = '//*[@id="%s"]' % refid[1:]
-                refnode = node.xpath( path )
+                refnode = node.xpath(path)
                 if refnode:
-                    x = float( node.get( 'x', '0' ) )
-                    y = float( node.get( 'y', '0' ) )
+                    x = float(node.get('x', '0'))
+                    y = float(node.get('y', '0'))
                     # Note: the transform has already been applied
-                    if ( x != 0 ) or (y != 0 ):
-                        matNew2 = composeTransform( matNew, parseTransform( 'translate(%f,%f)' % (x,y) ) )
+                    if (x != 0) or (y != 0):
+                        matNew2 = composeTransform(matNew, parseTransform('translate(%f,%f)' % (x, y)))
                     else:
                         matNew2 = matNew
-                    v = node.get( 'visibility', v )
-                    self.recursivelyTraverseSvg( refnode, matNew2, v )
+                    v = node.get('visibility', v)
+                    self.recursivelyTraverseSvg(refnode, matNew2, v)
 
-            elif node.tag == inkex.addNS( 'path', 'svg' ):
+            elif node.tag == inkex.addNS('path', 'svg'):
 
-                path_data = node.get( 'd')
+                path_data = node.get('d')
                 if path_data:
-                    self.getPathVertices( path_data, node, matNew )
+                    self.getPathVertices(path_data, node, matNew)
 
-            elif node.tag == inkex.addNS( 'rect', 'svg' ) or node.tag == 'rect':
+            elif node.tag == inkex.addNS('rect', 'svg') or node.tag == 'rect':
 
                 # Manually transform
                 #
@@ -644,21 +644,21 @@ class OpenSCAD( inkex.Effect ):
                 # fourth side implicitly
 
                 # Create a path with the outline of the rectangle
-                x = float( node.get( 'x' ) )
-                y = float( node.get( 'y' ) )
-                if ( not x ) or ( not y ):
+                x = float(node.get('x'))
+                y = float(node.get('y'))
+                if (not x) or (not y):
                     pass
-                w = float( node.get( 'width', '0' ) )
-                h = float( node.get( 'height', '0' ) )
+                w = float(node.get('width', '0'))
+                h = float(node.get('height', '0'))
                 a = []
-                a.append( ['M ', [x, y]] )
-                a.append( [' l ', [w, 0]] )
-                a.append( [' l ', [0, h]] )
-                a.append( [' l ', [-w, 0]] )
-                a.append( [' Z', []] )
-                self.getPathVertices( simplepath.formatPath( a ), node, matNew )
+                a.append(['M ', [x, y]])
+                a.append([' l ', [w, 0]])
+                a.append([' l ', [0, h]])
+                a.append([' l ', [-w, 0]])
+                a.append([' Z', []])
+                self.getPathVertices(simplepath.formatPath(a), node, matNew)
 
-            elif node.tag == inkex.addNS( 'line', 'svg' ) or node.tag == 'line':
+            elif node.tag == inkex.addNS('line', 'svg') or node.tag == 'line':
 
                 # Convert
                 #
@@ -668,18 +668,18 @@ class OpenSCAD( inkex.Effect ):
                 #
                 #   <path d="MX1,Y1 LX2,Y2"/>
 
-                x1 = float( node.get( 'x1' ) )
-                y1 = float( node.get( 'y1' ) )
-                x2 = float( node.get( 'x2' ) )
-                y2 = float( node.get( 'y2' ) )
-                if ( not x1 ) or ( not y1 ) or ( not x2 ) or ( not y2 ):
+                x1 = float(node.get('x1'))
+                y1 = float(node.get('y1'))
+                x2 = float(node.get('x2'))
+                y2 = float(node.get('y2'))
+                if (not x1) or (not y1) or (not x2) or (not y2):
                     pass
                 a = []
-                a.append( ['M ', [x1, y1]] )
-                a.append( [' L ', [x2, y2]] )
-                self.getPathVertices( simplepath.formatPath( a ), node, matNew )
+                a.append(['M ', [x1, y1]])
+                a.append([' L ', [x2, y2]])
+                self.getPathVertices(simplepath.formatPath(a), node, matNew)
 
-            elif node.tag == inkex.addNS( 'polyline', 'svg' ) or node.tag == 'polyline':
+            elif node.tag == inkex.addNS('polyline', 'svg') or node.tag == 'polyline':
 
                 # Convert
                 #
@@ -691,15 +691,15 @@ class OpenSCAD( inkex.Effect ):
                 #
                 # Note: we ignore polylines with no points
 
-                pl = node.get( 'points', '' ).strip()
+                pl = node.get('points', '').strip()
                 if pl == '':
                     pass
 
                 pa = pl.split()
-                d = "".join( ["M " + pa[i] if i == 0 else " L " + pa[i] for i in range( 0, len( pa ) )] )
-                self.getPathVertices( d, node, matNew )
+                d = "".join(["M " + pa[i] if i == 0 else " L " + pa[i] for i in range(0, len(pa))])
+                self.getPathVertices(d, node, matNew)
 
-            elif node.tag == inkex.addNS( 'polygon', 'svg' ) or node.tag == 'polygon':
+            elif node.tag == inkex.addNS('polygon', 'svg') or node.tag == 'polygon':
 
                 # Convert
                 #
@@ -711,130 +711,130 @@ class OpenSCAD( inkex.Effect ):
                 #
                 # Note: we ignore polygons with no points
 
-                pl = node.get( 'points', '' ).strip()
+                pl = node.get('points', '').strip()
                 if pl == '':
                     pass
 
                 pa = pl.split()
-                d = "".join( ["M " + pa[i] if i == 0 else " L " + pa[i] for i in range( 0, len( pa ) )] )
+                d = "".join(["M " + pa[i] if i == 0 else " L " + pa[i] for i in range(0, len(pa))])
                 d += " Z"
-                self.getPathVertices( d, node, matNew )
+                self.getPathVertices(d, node, matNew)
 
-            elif node.tag == inkex.addNS( 'ellipse', 'svg' ) or \
-                node.tag == 'ellipse' or \
-                node.tag == inkex.addNS( 'circle', 'svg' ) or \
-                node.tag == 'circle':
+            elif node.tag == inkex.addNS('ellipse', 'svg') or \
+                    node.tag == 'ellipse' or \
+                    node.tag == inkex.addNS('circle', 'svg') or \
+                    node.tag == 'circle':
 
-                    # Convert circles and ellipses to a path with two 180 degree arcs.
-                    # In general (an ellipse), we convert
-                    #
-                    #   <ellipse rx="RX" ry="RY" cx="X" cy="Y"/>
-                    #
-                    # to
-                    #
-                    #   <path d="MX1,CY A RX,RY 0 1 0 X2,CY A RX,RY 0 1 0 X1,CY"/>
-                    #
-                    # where
-                    #
-                    #   X1 = CX - RX
-                    #   X2 = CX + RX
-                    #
-                    # Note: ellipses or circles with a radius attribute of value 0 are ignored
+                # Convert circles and ellipses to a path with two 180 degree arcs.
+                # In general (an ellipse), we convert
+                #
+                #   <ellipse rx="RX" ry="RY" cx="X" cy="Y"/>
+                #
+                # to
+                #
+                #   <path d="MX1,CY A RX,RY 0 1 0 X2,CY A RX,RY 0 1 0 X1,CY"/>
+                #
+                # where
+                #
+                #   X1 = CX - RX
+                #   X2 = CX + RX
+                #
+                # Note: ellipses or circles with a radius attribute of value 0 are ignored
 
-                    if node.tag == inkex.addNS( 'ellipse', 'svg' ) or node.tag == 'ellipse':
-                        rx = float( node.get( 'rx', '0' ) )
-                        ry = float( node.get( 'ry', '0' ) )
-                    else:
-                        rx = float( node.get( 'r', '0' ) )
-                        ry = rx
-                    if rx == 0 or ry == 0:
-                        pass
+                if node.tag == inkex.addNS('ellipse', 'svg') or node.tag == 'ellipse':
+                    rx = float(node.get('rx', '0'))
+                    ry = float(node.get('ry', '0'))
+                else:
+                    rx = float(node.get('r', '0'))
+                    ry = rx
+                if rx == 0 or ry == 0:
+                    pass
 
-                    cx = float( node.get( 'cx', '0' ) )
-                    cy = float( node.get( 'cy', '0' ) )
-                    x1 = cx - rx
-                    x2 = cx + rx
-                    d = 'M %f,%f ' % ( x1, cy ) + \
-                        'A %f,%f ' % ( rx, ry ) + \
-                        '0 1 0 %f,%f ' % ( x2, cy ) + \
-                        'A %f,%f ' % ( rx, ry ) + \
-                        '0 1 0 %f,%f' % ( x1, cy )
-                    self.mapPathVertices( d, node, matNew )
+                cx = float(node.get('cx', '0'))
+                cy = float(node.get('cy', '0'))
+                x1 = cx - rx
+                x2 = cx + rx
+                d = 'M %f,%f ' % (x1, cy) + \
+                    'A %f,%f ' % (rx, ry) + \
+                    '0 1 0 %f,%f ' % (x2, cy) + \
+                    'A %f,%f ' % (rx, ry) + \
+                    '0 1 0 %f,%f' % (x1, cy)
+                self.mapPathVertices(d, node, matNew)
 
-            elif node.tag == inkex.addNS( 'pattern', 'svg' ) or node.tag == 'pattern':
-
-                pass
-
-            elif node.tag == inkex.addNS( 'metadata', 'svg' ) or node.tag == 'metadata':
+            elif node.tag == inkex.addNS('pattern', 'svg') or node.tag == 'pattern':
 
                 pass
 
-            elif node.tag == inkex.addNS( 'defs', 'svg' ) or node.tag == 'defs':
+            elif node.tag == inkex.addNS('metadata', 'svg') or node.tag == 'metadata':
 
                 pass
 
-            elif node.tag == inkex.addNS( 'desc', 'svg' ) or node.tag == 'desc':
+            elif node.tag == inkex.addNS('defs', 'svg') or node.tag == 'defs':
 
                 pass
 
-            elif node.tag == inkex.addNS( 'namedview', 'sodipodi' ) or node.tag == 'namedview':
+            elif node.tag == inkex.addNS('desc', 'svg') or node.tag == 'desc':
 
                 pass
 
-            elif node.tag == inkex.addNS( 'eggbot', 'svg' ) or node.tag == 'eggbot':
+            elif node.tag == inkex.addNS('namedview', 'sodipodi') or node.tag == 'namedview':
 
                 pass
 
-            elif node.tag == inkex.addNS( 'text', 'svg' ) or node.tag == 'text':
-
-                inkex.errormsg( 'Warning: unable to draw text, please convert it to a path first.' )
+            elif node.tag == inkex.addNS('eggbot', 'svg') or node.tag == 'eggbot':
 
                 pass
 
-            elif node.tag == inkex.addNS( 'title', 'svg' ) or node.tag == 'title':
+            elif node.tag == inkex.addNS('text', 'svg') or node.tag == 'text':
+
+                inkex.errormsg('Warning: unable to draw text, please convert it to a path first.')
 
                 pass
 
-            elif node.tag == inkex.addNS( 'image', 'svg' ) or node.tag == 'image':
+            elif node.tag == inkex.addNS('title', 'svg') or node.tag == 'title':
 
-                if not self.warnings.has_key( 'image' ):
-                    inkex.errormsg( gettext.gettext( 'Warning: unable to draw bitmap images; ' +
-                        'please convert them to line art first.  Consider using the "Trace bitmap..." ' +
-                        'tool of the "Path" menu.  Mac users please note that some X11 settings may ' +
-                        'cause cut-and-paste operations to paste in bitmap copies.' ) )
+                pass
+
+            elif node.tag == inkex.addNS('image', 'svg') or node.tag == 'image':
+
+                if 'image' not in self.warnings:
+                    inkex.errormsg(gettext.gettext('Warning: unable to draw bitmap images; ' +
+                                                   'please convert them to line art first.  Consider using the "Trace bitmap..." ' +
+                                                   'tool of the "Path" menu.  Mac users please note that some X11 settings may ' +
+                                                   'cause cut-and-paste operations to paste in bitmap copies.'))
                     self.warnings['image'] = 1
                 pass
 
-            elif node.tag == inkex.addNS( 'pattern', 'svg' ) or node.tag == 'pattern':
+            elif node.tag == inkex.addNS('pattern', 'svg') or node.tag == 'pattern':
 
                 pass
 
-            elif node.tag == inkex.addNS( 'radialGradient', 'svg' ) or node.tag == 'radialGradient':
+            elif node.tag == inkex.addNS('radialGradient', 'svg') or node.tag == 'radialGradient':
 
                 # Similar to pattern
                 pass
 
-            elif node.tag == inkex.addNS( 'linearGradient', 'svg' ) or node.tag == 'linearGradient':
+            elif node.tag == inkex.addNS('linearGradient', 'svg') or node.tag == 'linearGradient':
 
                 # Similar in pattern
                 pass
 
-            elif node.tag == inkex.addNS( 'style', 'svg' ) or node.tag == 'style':
+            elif node.tag == inkex.addNS('style', 'svg') or node.tag == 'style':
 
                 # This is a reference to an external style sheet and not the value
                 # of a style attribute to be inherited by child elements
                 pass
 
-            elif node.tag == inkex.addNS( 'cursor', 'svg' ) or node.tag == 'cursor':
+            elif node.tag == inkex.addNS('cursor', 'svg') or node.tag == 'cursor':
 
                 pass
 
-            elif node.tag == inkex.addNS( 'color-profile', 'svg' ) or node.tag == 'color-profile':
+            elif node.tag == inkex.addNS('color-profile', 'svg') or node.tag == 'color-profile':
 
                 # Gamma curves, color temp, etc. are not relevant to single color output
                 pass
 
-            elif not isinstance( node.tag, basestring ):
+            elif not isinstance(node.tag, basestring):
 
                 # This is likely an XML processing instruction such as an XML
                 # comment.  lxml uses a function reference for such node tags
@@ -846,11 +846,10 @@ class OpenSCAD( inkex.Effect ):
 
             else:
 
-                inkex.errormsg( 'Warning: unable to draw object <%s>, please convert it to a path first.' % node.tag )
+                inkex.errormsg('Warning: unable to draw object <%s>, please convert it to a path first.' % node.tag)
                 pass
 
-
-    def recursivelyGetEnclosingTransform( self, node ):
+    def recursivelyGetEnclosingTransform(self, node):
 
         '''
         Determine the cumulative transform which node inherits from
@@ -858,20 +857,20 @@ class OpenSCAD( inkex.Effect ):
         '''
         node = node.getparent()
         if node is not None:
-            parent_transform = self.recursivelyGetEnclosingTransform( node )
-            node_transform = node.get( 'transform', None )
+            parent_transform = self.recursivelyGetEnclosingTransform(node)
+            node_transform = node.get('transform', None)
             if node_transform is None:
                 return parent_transform
             else:
-                tr = simpletransform.parseTransform( node_transform )
+                tr = simpletransform.parseTransform(node_transform)
                 if parent_transform is None:
                     return tr
                 else:
-                    return simpletransform.composeTransform( parent_transform, tr )
+                    return simpletransform.composeTransform(parent_transform, tr)
         else:
             return self.docTransform
 
-    def effect( self ):
+    def effect(self):
 
         # Viewbox handling
         self.handleViewBox()
@@ -884,22 +883,22 @@ class OpenSCAD( inkex.Effect ):
         if self.options.ids:
             # Traverse the selected objects
             for id in self.options.ids:
-                transform = self.recursivelyGetEnclosingTransform( self.selected[id] )
-                self.recursivelyTraverseSvg( [self.selected[id]], transform )
+                transform = self.recursivelyGetEnclosingTransform(self.selected[id])
+                self.recursivelyTraverseSvg([self.selected[id]], transform)
         else:
             # Traverse the entire document building new, transformed paths
-            self.recursivelyTraverseSvg( self.document.getroot(), self.docTransform )
+            self.recursivelyTraverseSvg(self.document.getroot(), self.docTransform)
 
         # Determine the center of the drawing's bounding box
-        self.cx = self.xmin + ( self.xmax - self.xmin ) / 2.0
-        self.cy = self.ymin + ( self.ymax - self.ymin ) / 2.0
+        self.cx = self.xmin + (self.xmax - self.xmin) / 2.0
+        self.cy = self.ymin + (self.ymax - self.ymin) / 2.0
 
         # Determine which polygons lie entirely within other polygons
         try:
             if '/' == os.sep:
-                self.f = open( os.path.expanduser( self.options.fname ), 'w')
+                self.f = open(os.path.expanduser(self.options.fname), 'w')
             else:
-                self.f = open( os.path.expanduser( self.options.fname ).replace('/', os.sep), 'w')
+                self.f = open(os.path.expanduser(self.options.fname).replace('/', os.sep), 'w')
 
             self.f.write('''
 // Module names are of the form poly_<inkscape-path-id>().  As a result,
@@ -911,21 +910,21 @@ class OpenSCAD( inkex.Effect ):
 // in the z dimension than the polygon being subtracted from.  This helps
 // keep the resulting .stl file manifold.
 fudge = 0.1;
-''' )
+''')
 
             for key in self.paths:
-                self.f.write( '\n' )
-                self.convertPath( key )
+                self.f.write('\n')
+                self.convertPath(key)
 
-        # Now output the list of modules to call
-            self.f.write( '\n' )
+                # Now output the list of modules to call
+            self.f.write('\n')
             for call in self.call_list:
-                self.f.write( call )
+                self.f.write(call)
 
         except:
-            inkex.errormsg( 'Unable to open the file ' + self.options.fname )
+            inkex.errormsg('Unable to open the file ' + self.options.fname)
+
 
 if __name__ == '__main__':
-
     e = OpenSCAD()
     e.affect()
