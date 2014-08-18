@@ -1,0 +1,3 @@
+[submodule "make-includes"]
+	path = make-includes
+	url = git://github.com/l0b0/make-includes.git

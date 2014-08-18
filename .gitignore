@@ -1,0 +1,4 @@
+build/
+download/
+virtualenv
+virtualenv*/
