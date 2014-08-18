@@ -16,6 +16,9 @@
 #   If you want to nest two polygons, combine them into a single path
 #   within Inkscape with "Path > Combine Path".
 
+# 15 August 2014
+#   Updated by Josef Skladanka to automatically set extruded heights
+
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 2 of the License, or
@@ -43,6 +46,7 @@ import re
 
 DEFAULT_WIDTH = 100
 DEFAULT_HEIGHT = 100
+RE_AUTO_HEIGHT = re.compile(r".*?_(\d+(?:_\d+)?)_mm$")
 
 def parseLengthWithUnits( str ):
 
@@ -247,6 +251,10 @@ class OpenSCAD( inkex.Effect ):
             type='string', default='~/inkscape.scad',
             action='store',
             help='Curve smoothing (less for more)' )
+
+        self.OptionParser.add_option('--autoheight', dest='autoheight',
+            type='string', default='false', action='store',
+            help='Set heights automatically' )
 
         self.cx = float( DEFAULT_WIDTH ) / 2.0
         self.cy = float( DEFAULT_HEIGHT ) / 2.0
@@ -477,7 +485,16 @@ class OpenSCAD( inkex.Effect ):
         self.f.write( '  scale([25.4/90, -25.4/90, 1]) union()\n  {\n' )
 
         # And add the call to the call list
-        self.call_list.append( 'poly_%s(%s);\n' % ( id, self.options.height ) )
+        # Try and set auto height
+        height = self.options.height
+        if self.options.autoheight == 'true':
+            found_height = RE_AUTO_HEIGHT.findall(id)
+            try:
+                height = found_height[-1].replace("_", ".")
+            except IndexError:
+                pass
+
+        self.call_list.append( 'poly_%s(%s);\n' % ( id, height ) )
 
         for i in range( 0, len( path ) ):
 
