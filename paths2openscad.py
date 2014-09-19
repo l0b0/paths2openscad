@@ -41,6 +41,7 @@ import cubicsuperpath
 import cspsubdiv
 import bezmisc
 import re
+import string
 
 DEFAULT_WIDTH = 100
 DEFAULT_HEIGHT = 100
@@ -973,10 +974,9 @@ fudge = 0.1;
 
             # Come up with a name for the module based on the file name.
             name = os.path.splitext( os.path.basename( self.options.fname ) )[0]
-            import string
-            all = string.maketrans('', '')
             # Remove all punctuation except underscore.
-            name.translate(all, string.punctuation.replace('_', ''))
+            name = re.sub('[' + string.punctuation.replace('_', '') + ']', '', name)
+
             self.f.write('\nmodule %s(h)\n{\n' % name)
 
             # Now output the list of modules to call
