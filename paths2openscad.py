@@ -501,17 +501,13 @@ class OpenSCAD(inkex.Effect):
                 desc_node = node.find("./%s" % tagname)
                 if desc_node is not None:
                     found_height = RE_AUTO_HEIGHT_DESC.findall(desc_node.text)
-                    try:
+                    if found_height:
                         height = found_height[-1]
                         break
-                    except IndexError:
-                        continue
             else:
                 found_height = RE_AUTO_HEIGHT_ID.findall(id)
-                try:
+                if found_height:
                     height = found_height[-1].replace("_", ".")
-                except IndexError:
-                    pass
 
         self.call_list.append('poly_%s(%s);\n' % (id, height))
 
