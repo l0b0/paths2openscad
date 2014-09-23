@@ -45,7 +45,9 @@ import string
 
 DEFAULT_WIDTH = 100
 DEFAULT_HEIGHT = 100
-RE_AUTO_HEIGHT = re.compile(r".*?_(\d+(?:_\d+)?)_mm$")
+RE_AUTO_HEIGHT_ID = re.compile(r".*?_(\d+(?:_\d+)?)_mm$")
+RE_AUTO_HEIGHT_DESC = re.compile(r"^(?:ht|height):\s*(\d+(?:\.\d+)?) mm$", re.MULTILINE)
+DESC_TAGS = ['desc', inkex.addNS('desc', 'svg')]
 
 
 def parseLengthWithUnits(str):
@@ -497,11 +499,17 @@ class OpenSCAD(inkex.Effect):
         # unless an auto-height is found.
         height = 'h'
         if self.options.autoheight == 'true':
-            found_height = RE_AUTO_HEIGHT.findall(id)
-            try:
-                height = found_height[-1].replace("_", ".")
-            except IndexError:
-                pass
+            for tagname in DESC_TAGS:
+                desc_node = node.find("./%s" % tagname)
+                if desc_node is not None:
+                    found_height = RE_AUTO_HEIGHT_DESC.findall(desc_node.text)
+                    if found_height:
+                        height = found_height[-1]
+                        break
+            else:
+                found_height = RE_AUTO_HEIGHT_ID.findall(id)
+                if found_height:
+                    height = found_height[-1].replace("_", ".")
 
         self.call_list.append('poly_%s(%s);\n' % (id, height))
 

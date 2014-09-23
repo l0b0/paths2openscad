@@ -20,17 +20,19 @@ The smoothing parameter describes how smoothly to render
 curves. Use smaller values for smoother curves.
 
 The auto height option sets the extruded height for
-a specific polygon based on its ID. If the polygon's ID
-is in either name_NNN_mm or name_NNN_NNN_mm format,
-the NNN_(NNN_)mm part of the name is translated into
-height in milimeters.
+a specific polygon based on its description or ID.
+
+If the polygon's ID  is in either name_NNN_mm or
+name_NNN_NNN_mm format, the NNN_(NNN_)mm part of
+the name is translated into height in milimeters.
+
+If the polygon's description contains line like
+height: XXX mm
+where XXX is any decimal number (use . as separator),
+the height is set to XXX milimeters.
+Note that the description has preference over ID.
 
 Otherwise, the height parameter is used
-
-Examples:
-  rect543_1_mm -&gt; 1 mm height
-  poly456_12_5_mm -&gt; 12.5 mm height
-  circle2345_3 -&gt; according to the height parameter
 </_param>
     <param name="fname" type="string" _gui-text="Output file">~/inkscape.scad</param>
     <param name="height" type="float" min="0" max="1000" precision="2" _gui-text="Height (mm)">5.0</param>
@@ -56,7 +58,7 @@ Inkscape's units of pixels are converted
 to millimeters using the SVG Standard's
 definition of 90 pixels = 1 inch.
 
-v0.10
+v0.11
 Dan Newman (dan newman @ mtbaldy us)
 Josef Skladanka (jskladan @ redhat com)
 </_param>
