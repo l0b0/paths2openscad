@@ -41,6 +41,7 @@ import cubicsuperpath
 import cspsubdiv
 import bezmisc
 import re
+import string
 
 DEFAULT_WIDTH = 100
 DEFAULT_HEIGHT = 100
@@ -492,8 +493,9 @@ class OpenSCAD(inkex.Effect):
         self.f.write('  scale([25.4/90, -25.4/90, 1]) union()\n  {\n')
 
         # And add the call to the call list
-        # Try and set auto height
-        height = self.options.height
+        # Height is set by the overall module parameter
+        # unless an auto-height is found.
+        height = 'h'
         if self.options.autoheight == 'true':
             found_height = RE_AUTO_HEIGHT.findall(id)
             try:
@@ -970,10 +972,20 @@ fudge = 0.1;
                 self.f.write('\n')
                 self.convertPath(key)
 
-                # Now output the list of modules to call
+            # Come up with a name for the module based on the file name.
+            name = os.path.splitext( os.path.basename( self.options.fname ) )[0]
+            # Remove all punctuation except underscore.
+            name = re.sub('[' + string.punctuation.replace('_', '') + ']', '', name)
+
+            self.f.write('\nmodule %s(h)\n{\n' % name)
+
+            # Now output the list of modules to call
             self.f.write('\n')
             for call in self.call_list:
                 self.f.write(call)
+
+            # The module that calls all the other ones.
+            self.f.write('}\n\n%s(%s);\n' % (name, self.options.height))
 
         except:
             inkex.errormsg('Unable to open the file ' + self.options.fname)
