@@ -46,7 +46,9 @@ import string
 DEFAULT_WIDTH = 100
 DEFAULT_HEIGHT = 100
 RE_AUTO_HEIGHT_ID = re.compile(r".*?_(\d+(?:_\d+)?)_mm$")
-RE_AUTO_HEIGHT_DESC = re.compile(r"^(?:ht|height):\s*(\d+(?:\.\d+)?) mm$", re.MULTILINE)
+RE_AUTO_HEIGHT_DESC = re.compile(
+    r"^(?:ht|height):\s*(\d+(?:\.\d+)?) mm$",
+    re.MULTILINE)
 DESC_TAGS = ['desc', inkex.addNS('desc', 'svg')]
 
 
@@ -981,9 +983,10 @@ fudge = 0.1;
                 self.convertPath(key)
 
             # Come up with a name for the module based on the file name.
-            name = os.path.splitext( os.path.basename( self.options.fname ) )[0]
+            name = os.path.splitext(os.path.basename(self.options.fname))[0]
             # Remove all punctuation except underscore.
-            name = re.sub('[' + string.punctuation.replace('_', '') + ']', '', name)
+            name = re.sub(
+                '[' + string.punctuation.replace('_', '') + ']', '', name)
 
             self.f.write('\nmodule %s(h)\n{\n' % name)
 
