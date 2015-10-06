@@ -1,10 +1,9 @@
+MAKE = /usr/bin/make
+
 NAME = $(notdir $(CURDIR))
 
 PYTHON_VERSION = 2.7.8
 VIRTUALENV_VERSION = 1.11.6
-
-# System
-RM := /bin/rm -f
 
 .PHONY: all
 all: test
@@ -13,7 +12,7 @@ all: test
 test: virtualenv
 	. virtualenv/bin/activate && \
 		pip install --requirement python-test-requirements.txt && \
-		make METHOD=git python-pep8
+		$(MAKE) METHOD=git python-pep8
 
 .PHONY: clean
 clean: clean-build clean-download clean-virtualenv
