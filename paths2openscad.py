@@ -1004,4 +1004,4 @@ fudge = 0.1;
 
 if __name__ == '__main__':
     e = OpenSCAD()
-    e.effect()
+    e.affect()
