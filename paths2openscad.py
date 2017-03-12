@@ -19,6 +19,9 @@
 # 15 August 2014
 #   Updated by Josef Skladanka to automatically set extruded heights
 
+# 2017-03-11, juergen@fabmail.org
+#   0.12	parse svg width="400mm" correctly. Came out downscaled by 3...
+
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 2 of the License, or
@@ -59,14 +62,16 @@ def parseLengthWithUnits(str):
     units of px, and units of %.  Everything else, it returns None for.
     There is a more general routine to consider in scour.py if more
     generality is ever needed.
+    With inkscape 0.91 we need other units too: e.g. svg:width="400mm"
     '''
 
     u = 'px'
     s = str.strip()
-    if s[-2:] == 'px':
+    if s[-2:] in ('px', 'pt', 'pc', 'mm', 'cm', 'in', 'ft'):
+        u = s[-2:]
         s = s[:-2]
-    elif s[-1:] == '%':
-        u = '%'
+    elif s[-1:] in ('m', '%'):
+        u = s[-1:]
         s = s[:-1]
 
     try:

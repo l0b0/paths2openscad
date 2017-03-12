@@ -58,9 +58,10 @@ Inkscape's units of pixels are converted
 to millimeters using the SVG Standard's
 definition of 90 pixels = 1 inch.
 
-v0.11
+v0.12
 Dan Newman (dan newman @ mtbaldy us)
 Josef Skladanka (jskladan @ redhat com)
+Juergen Weigert (juergen @ fabmail org)
 </_param>
   </page>
 </param>
