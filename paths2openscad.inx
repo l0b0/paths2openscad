@@ -39,9 +39,10 @@
 The auto height option sets the extruded height for
 a specific polygon based on its description or ID.
 
-If the polygon's ID  is in either name_NNN_mm or
-name_NNN_NNN_mm format, the NNN_(NNN_)mm part of
-the name is translated into height in milimeters.
+If the polygon's ID is in either name_XXX_mm or name_XXXmm
+format, then XXX is translated into height in millimeters.
+Use . or _ as separator for a decimal number.
+Note that all whitespace or comma are saved as '_' in ID.
 
 If the polygon's description contains line like
 height: XXX mm

@@ -39,6 +39,7 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 import os
+import sys
 import os.path
 import inkex
 import simplepath
@@ -51,9 +52,10 @@ import string
 
 DEFAULT_WIDTH = 100
 DEFAULT_HEIGHT = 100
-RE_AUTO_HEIGHT_ID = re.compile(r".*?_(\d+(?:_\d+)?)_mm$")
+# Parse all these as 56.7 mm height: "path1234_56_7_mm", "pat1234____57.7mm", "path1234_57.7__mm"
+RE_AUTO_HEIGHT_ID = re.compile(r".*?_+(\d+(?:[_\.]\d+)?)_*mm$")
 RE_AUTO_HEIGHT_DESC = re.compile(
-    r"^(?:ht|height):\s*(\d+(?:\.\d+)?) mm$",
+    r"^(?:ht|height):\s*(\d+(?:\.\d+)?) ?mm$",
     re.MULTILINE)
 DESC_TAGS = ['desc', inkex.addNS('desc', 'svg')]
 
@@ -527,12 +529,13 @@ class OpenSCAD(inkex.Effect):
                     contained_by[i].append(j)
 
         # Generate an OpenSCAD module for this path
-        id = node.get('id', '')
-        if (id is None) or (id == ''):
+        rawid = node.get('id', '')
+        if (rawid is None) or (rawid == ''):
             id = str(self.pathid) + 'x'
+            rawid = id
             self.pathid += 1
         else:
-            id = re.sub('[^A-Za-z0-9_]+', '', id)
+            id = re.sub('[^A-Za-z0-9_]+', '', rawid)
         self.f.write('module poly_' + id + '(h)\n{\n')
         self.f.write('  scale([25.4/%g, -25.4/%g, 1]) union()\n  {\n' % (self.dpi, self.dpi))
 
@@ -549,7 +552,7 @@ class OpenSCAD(inkex.Effect):
                         height = found_height[-1]
                         break
             else:
-                found_height = RE_AUTO_HEIGHT_ID.findall(id)
+                found_height = RE_AUTO_HEIGHT_ID.findall(rawid)
                 if found_height:
                     height = found_height[-1].replace("_", ".")
 
@@ -837,7 +840,7 @@ class OpenSCAD(inkex.Effect):
                     '0 1 0 %f,%f ' % (x2, cy) + \
                     'A %f,%f ' % (rx, ry) + \
                     '0 1 0 %f,%f' % (x1, cy)
-                self.mapPathVertices(d, node, matNew)
+                self.getPathVertices(d, node, matNew)
 
             elif node.tag == inkex.addNS('pattern', 'svg') or \
                     node.tag == 'pattern':
@@ -1045,7 +1048,6 @@ fudge = 0.1;
             try: os.unlink(stl_fname)
             except: pass
 
-            import sys
             import subprocess
             try:
                 proc = subprocess.Popen(cmd, shell=True, stdin=subprocess.PIPE,
