@@ -18,9 +18,11 @@
 
 # 15 August 2014
 #   Updated by Josef Skladanka to automatically set extruded heights
-
+#
 # 2017-03-11, juergen@fabmail.org
-#   0.12	parse svg width="400mm" correctly. Came out downscaled by 3...
+#   0.12        parse svg width="400mm" correctly. Came out downscaled by 3...
+#
+# CAUTIOM: keep the version numnber in sync with paths2openscad.inx about page
 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -36,6 +38,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
+import os
 import os.path
 import inkex
 import simplepath
@@ -54,6 +57,9 @@ RE_AUTO_HEIGHT_DESC = re.compile(
     re.MULTILINE)
 DESC_TAGS = ['desc', inkex.addNS('desc', 'svg')]
 
+# CAUTION: keep these defaults in sync with paths2openscad.inx
+INX_SCAD2STL           = os.getenv('INX_SCAD2STL',           "openscad '%s' -o '%s'")
+INX_STL_POSTPROCESSING = os.getenv('INX_STL_POSTPROCESSING', "cura '%s' &")
 
 def parseLengthWithUnits(str):
     '''
@@ -266,7 +272,21 @@ class OpenSCAD(inkex.Effect):
             '--autoheight', dest='autoheight', type='string', default='false',
             action='store', help='Set heights automatically')
 
-	self.dpi = 90.0		# factored out for inkscape-0.92
+        self.OptionParser.add_option(
+            '--scad2stl', dest='scad2stl', type='string', default='false',
+            action='store', help='Also convert to STL ( details see --scad2stlcmd option )')
+        self.OptionParser.add_option(
+            '--scad2stlcmd', dest='scad2stlcmd', type='string', default=INX_SCAD2STL,
+            action='store', help='Command used to convert to STL')
+
+        self.OptionParser.add_option(
+            '--stlpost', dest='stlpost', type='string', default='false',
+            action='store', help='Start e.g. a slicer. This implies the --scad2stl option. ( see --stlpostcmd)')
+        self.OptionParser.add_option(
+            '--stlpostcmd', dest='stlpostcmd', type='string', default=INX_STL_POSTPROCESSING,
+            action='store', help='Command used for post processing an STL file (typically a slicer)')
+
+        self.dpi = 90.0                # factored out for inkscape-0.92
         self.cx = float(DEFAULT_WIDTH) / 2.0
         self.cy = float(DEFAULT_HEIGHT) / 2.0
         self.xmin, self.xmax = (1.0E70, -1.0E70)
@@ -350,17 +370,17 @@ class OpenSCAD(inkex.Effect):
         self.docHeight = self.getLength('height', DEFAULT_HEIGHT)
         self.docWidth = self.getLength('width', DEFAULT_WIDTH)
         inkscape_version = self.document.getroot().get("{http://www.inkscape.org/namespaces/inkscape}version")
-	# a simple 'inkscape:version' does not work here. sigh....
-	if inkscape_version:
-	    '''
-	    inkscape:version="0.91 r"
-	    inkscape:version="0.92.0 ..."
-	    See also https://github.com/fablabnbg/paths2openscad/issues/1
-	    '''
-	    m=re.match(r"(\d+)\.(\d+)", inkscape_version)
-	    if m:
-	        if int(m.group(1)) > 0 or int(m.group(2)) > 91:
-		    self.dpi = 96		# 96dpi since inkscape 0.92
+        # a simple 'inkscape:version' does not work here. sigh....
+        if inkscape_version:
+            '''
+            inkscape:version="0.91 r"
+            inkscape:version="0.92.0 ..."
+            See also https://github.com/fablabnbg/paths2openscad/issues/1
+            '''
+            m=re.match(r"(\d+)\.(\d+)", inkscape_version)
+            if m:
+                if int(m.group(1)) > 0 or int(m.group(2)) > 91:
+                    self.dpi = 96                # 96dpi since inkscape 0.92
 
         if (self.docHeight is None) or (self.docWidth is None):
             return False
@@ -978,13 +998,10 @@ class OpenSCAD(inkex.Effect):
 
         # Determine which polygons lie entirely within other polygons
         try:
-            if '/' == os.sep:
-                self.f = open(os.path.expanduser(self.options.fname), 'w')
-            else:
-                self.f = open(
-                    os.path.expanduser(
-                        self.options.fname).replace('/', os.sep),
-                    'w')
+            full_fname = os.path.expanduser(self.options.fname)
+            if '/' != os.sep:
+                full_fname = full_fname.replace('/', os.sep)
+            self.f = open(full_fname, 'w')
 
             self.f.write('''
 // Module names are of the form poly_<inkscape-path-id>().  As a result,
@@ -1017,9 +1034,49 @@ fudge = 0.1;
 
             # The module that calls all the other ones.
             self.f.write('}\n\n%s(%s);\n' % (name, self.options.height))
+            self.f.close()
 
         except:
-            inkex.errormsg('Unable to open the file ' + self.options.fname)
+            inkex.errormsg('Unable to write file ' + self.options.fname)
+
+        if self.options.scad2stl == 'true' or self.options.stlpost == 'true':
+            stl_fname = re.sub(r"\.SCAD", "", full_fname, flags=re.I) + '.stl'
+            cmd = self.options.scad2stlcmd % (full_fname, stl_fname)
+            try: os.unlink(stl_fname)
+            except: pass
+
+            import sys
+            import subprocess
+            try:
+                proc = subprocess.Popen(cmd, shell=True, stdin=subprocess.PIPE,
+                        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            except OSError as e:
+                raise OSError("%s failed: errno=%d %s" % (cmd, e.errno, e.strerror))
+            stdout, stderr = proc.communicate()
+
+            len = -1
+            try: len = os.path.getsize(stl_fname)
+            except: pass
+            if len < 1000:
+                print >> sys.stderr, "CMD: %s", cmd
+                print >> sys.stderr, "WARNING: %s is very small: %d bytes." % (stl_fname, len)
+                print >> sys.stderr, "= " * 24
+                print >> sys.stderr, "STDOUT:\n", stdout, "= " * 24, "\nSTDERR:\n", stderr, "= " * 24
+
+            if self.options.stlpost == 'true':
+                cmd = self.options.stlpostcmd % (stl_fname)
+                try:  tty = open("/dev/tty", "w")
+                except: tty=subprocess.PIPE
+
+                try:
+                    proc = subprocess.Popen(cmd, shell=True, stdin=tty, stdout=tty, stderr=tty)
+                except OSError as e:
+                    raise OSError("%s failed: errno=%d %s" % (cmd, e.errno, e.strerror))
+
+                stdout, stderr = proc.communicate()
+                if stdout or stderr: print >> sys.stderr, "CMD: ", cmd,  "\n","= " * 24
+                if stdout: print >> sys.stderr, "STDOUT:\n", stdout, "= " * 24
+                if stderr: print >> sys.stderr, "STDERR:\n", stderr, "= " * 24
 
 
 if __name__ == '__main__':
