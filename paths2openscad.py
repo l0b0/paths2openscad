@@ -266,6 +266,7 @@ class OpenSCAD(inkex.Effect):
             '--autoheight', dest='autoheight', type='string', default='false',
             action='store', help='Set heights automatically')
 
+	self.dpi = 90.0		# factored out for inkscape-0.92
         self.cx = float(DEFAULT_WIDTH) / 2.0
         self.cy = float(DEFAULT_HEIGHT) / 2.0
         self.xmin, self.xmax = (1.0E70, -1.0E70)
@@ -304,6 +305,7 @@ class OpenSCAD(inkex.Effect):
         units of cm, ft, in, m, mm, pc, or pt.  Convert to pixels.
 
         Note that SVG defines 90 px = 1 in = 25.4 mm.
+        Note: Since inkscape 0.92 the updated CSS standard of 96 px = 1 in is used!
         '''
 
         str = self.document.getroot().get(name)
@@ -313,21 +315,21 @@ class OpenSCAD(inkex.Effect):
                 # Couldn't parse the value
                 return None
             elif (u == 'mm'):
-                return float(v) * (90.0 / 25.4)
+                return float(v) * (self.dpi / 25.4)
             elif (u == 'cm'):
-                return float(v) * (90.0 * 10.0 / 25.4)
+                return float(v) * (self.dpi * 10.0 / 25.4)
             elif (u == 'm'):
-                return float(v) * (90.0 * 1000.0 / 25.4)
+                return float(v) * (self.dpi * 1000.0 / 25.4)
             elif (u == 'in'):
-                return float(v) * 90.0
+                return float(v) * self.dpi
             elif (u == 'ft'):
-                return float(v) * 12.0 * 90.0
+                return float(v) * 12.0 * self.dpi
             elif (u == 'pt'):
                 # Use modern "Postscript" points of 72 pt = 1 in instead
                 # of the traditional 72.27 pt = 1 in
-                return float(v) * (90.0 / 72.0)
+                return float(v) * (self.dpi / 72.0)
             elif (u == 'pc'):
-                return float(v) * (90.0 / 6.0)
+                return float(v) * (self.dpi / 6.0)
             elif (u == 'px'):
                 return float(v)
             else:
@@ -347,6 +349,19 @@ class OpenSCAD(inkex.Effect):
 
         self.docHeight = self.getLength('height', DEFAULT_HEIGHT)
         self.docWidth = self.getLength('width', DEFAULT_WIDTH)
+        inkscape_version = self.document.getroot().get("{http://www.inkscape.org/namespaces/inkscape}version")
+	# a simple 'inkscape:version' does not work here. sigh....
+	if inkscape_version:
+	    '''
+	    inkscape:version="0.91 r"
+	    inkscape:version="0.92.0 ..."
+	    See also https://github.com/fablabnbg/paths2openscad/issues/1
+	    '''
+	    m=re.match(r"(\d+)\.(\d+)", inkscape_version)
+	    if m:
+	        if int(m.group(1)) > 0 or int(m.group(2)) > 91:
+		    self.dpi = 96		# 96dpi since inkscape 0.92
+
         if (self.docHeight is None) or (self.docWidth is None):
             return False
         else:
@@ -499,7 +514,7 @@ class OpenSCAD(inkex.Effect):
         else:
             id = re.sub('[^A-Za-z0-9_]+', '', id)
         self.f.write('module poly_' + id + '(h)\n{\n')
-        self.f.write('  scale([25.4/90, -25.4/90, 1]) union()\n  {\n')
+        self.f.write('  scale([25.4/%g, -25.4/%g, 1]) union()\n  {\n' % (self.dpi, self.dpi))
 
         # And add the call to the call list
         # Height is set by the overall module parameter
