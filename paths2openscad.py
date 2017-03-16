@@ -22,7 +22,8 @@
 # 2017-03-11, juergen@fabmail.org
 #   0.12        parse svg width="400mm" correctly. Came out downscaled by 3...
 #
-# CAUTIOM: keep the version numnber in sync with paths2openscad.inx about page
+# CAUTION: keep the version numnber in sync with paths2openscad.inx about page
+# CAUTION: indentation and whitespace issues due to pep8 compatibility.
 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -52,7 +53,8 @@ import string
 
 DEFAULT_WIDTH = 100
 DEFAULT_HEIGHT = 100
-# Parse all these as 56.7 mm height: "path1234_56_7_mm", "pat1234____57.7mm", "path1234_57.7__mm"
+# Parse all these as 56.7 mm height:
+#  "path1234_56_7_mm", "pat1234____57.7mm", "path1234_57.7__mm"
 RE_AUTO_HEIGHT_ID = re.compile(r".*?_+(\d+(?:[_\.]\d+)?)_*mm$")
 RE_AUTO_HEIGHT_DESC = re.compile(
     r"^(?:ht|height):\s*(\d+(?:\.\d+)?) ?mm$",
@@ -60,8 +62,9 @@ RE_AUTO_HEIGHT_DESC = re.compile(
 DESC_TAGS = ['desc', inkex.addNS('desc', 'svg')]
 
 # CAUTION: keep these defaults in sync with paths2openscad.inx
-INX_SCAD2STL           = os.getenv('INX_SCAD2STL',           "openscad '%s' -o '%s'")
+INX_SCAD2STL = os.getenv('INX_SCAD2STL', "openscad '%s' -o '%s'")
 INX_STL_POSTPROCESSING = os.getenv('INX_STL_POSTPROCESSING', "cura '%s' &")
+
 
 def parseLengthWithUnits(str):
     '''
@@ -276,17 +279,22 @@ class OpenSCAD(inkex.Effect):
 
         self.OptionParser.add_option(
             '--scad2stl', dest='scad2stl', type='string', default='false',
-            action='store', help='Also convert to STL ( details see --scad2stlcmd option )')
+            action='store',
+            help='Also convert to STL ( details see --scad2stlcmd option )')
         self.OptionParser.add_option(
-            '--scad2stlcmd', dest='scad2stlcmd', type='string', default=INX_SCAD2STL,
+            '--scad2stlcmd', dest='scad2stlcmd', type='string',
+            default=INX_SCAD2STL,
             action='store', help='Command used to convert to STL')
 
         self.OptionParser.add_option(
             '--stlpost', dest='stlpost', type='string', default='false',
-            action='store', help='Start e.g. a slicer. This implies the --scad2stl option. ( see --stlpostcmd)')
+            action='store', help='Start e.g. a slicer. This implies the ' +
+            '--scad2stl option. ( see --stlpostcmd)')
         self.OptionParser.add_option(
-            '--stlpostcmd', dest='stlpostcmd', type='string', default=INX_STL_POSTPROCESSING,
-            action='store', help='Command used for post processing an STL file (typically a slicer)')
+            '--stlpostcmd', dest='stlpostcmd', type='string',
+            default=INX_STL_POSTPROCESSING, action='store',
+            help='Command used for post processing an STL file ' +
+            '(typically a slicer)')
 
         self.dpi = 90.0                # factored out for inkscape-0.92
         self.cx = float(DEFAULT_WIDTH) / 2.0
@@ -327,7 +335,7 @@ class OpenSCAD(inkex.Effect):
         units of cm, ft, in, m, mm, pc, or pt.  Convert to pixels.
 
         Note that SVG defines 90 px = 1 in = 25.4 mm.
-        Note: Since inkscape 0.92 the updated CSS standard of 96 px = 1 in is used!
+        Note: Since inkscape 0.92 we use the CSS standard of 96 px = 1 in.
         '''
 
         str = self.document.getroot().get(name)
@@ -371,7 +379,8 @@ class OpenSCAD(inkex.Effect):
 
         self.docHeight = self.getLength('height', DEFAULT_HEIGHT)
         self.docWidth = self.getLength('width', DEFAULT_WIDTH)
-        inkscape_version = self.document.getroot().get("{http://www.inkscape.org/namespaces/inkscape}version")
+        inkscape_version = self.document.getroot().get(
+            "{http://www.inkscape.org/namespaces/inkscape}version")
         # a simple 'inkscape:version' does not work here. sigh....
         if inkscape_version:
             '''
@@ -379,7 +388,7 @@ class OpenSCAD(inkex.Effect):
             inkscape:version="0.92.0 ..."
             See also https://github.com/fablabnbg/paths2openscad/issues/1
             '''
-            m=re.match(r"(\d+)\.(\d+)", inkscape_version)
+            m = re.match(r"(\d+)\.(\d+)", inkscape_version)
             if m:
                 if int(m.group(1)) > 0 or int(m.group(2)) > 91:
                     self.dpi = 96                # 96dpi since inkscape 0.92
@@ -537,7 +546,8 @@ class OpenSCAD(inkex.Effect):
         else:
             id = re.sub('[^A-Za-z0-9_]+', '', rawid)
         self.f.write('module poly_' + id + '(h)\n{\n')
-        self.f.write('  scale([25.4/%g, -25.4/%g, 1]) union()\n  {\n' % (self.dpi, self.dpi))
+        self.f.write('  scale([25.4/%g, -25.4/%g, 1]) union()\n  {\n' %
+                    (self.dpi, self.dpi))
 
         # And add the call to the call list
         # Height is set by the overall module parameter
@@ -1045,40 +1055,55 @@ fudge = 0.1;
         if self.options.scad2stl == 'true' or self.options.stlpost == 'true':
             stl_fname = re.sub(r"\.SCAD", "", full_fname, flags=re.I) + '.stl'
             cmd = self.options.scad2stlcmd % (full_fname, stl_fname)
-            try: os.unlink(stl_fname)
-            except: pass
+            try:
+                os.unlink(stl_fname)
+            except:
+                pass
 
             import subprocess
             try:
                 proc = subprocess.Popen(cmd, shell=True, stdin=subprocess.PIPE,
-                        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                                        stdout=subprocess.PIPE,
+                                        stderr=subprocess.PIPE)
             except OSError as e:
-                raise OSError("%s failed: errno=%d %s" % (cmd, e.errno, e.strerror))
+                raise OSError("%s failed: errno=%d %s" %
+                              (cmd, e.errno, e.strerror))
             stdout, stderr = proc.communicate()
 
             len = -1
-            try: len = os.path.getsize(stl_fname)
-            except: pass
+            try:
+                len = os.path.getsize(stl_fname)
+            except:
+                pass
             if len < 1000:
                 print >> sys.stderr, "CMD: %s", cmd
-                print >> sys.stderr, "WARNING: %s is very small: %d bytes." % (stl_fname, len)
+                print >> sys.stderr, "WARNING: %s is very small: %d bytes." %
+                (stl_fname, len)
                 print >> sys.stderr, "= " * 24
-                print >> sys.stderr, "STDOUT:\n", stdout, "= " * 24, "\nSTDERR:\n", stderr, "= " * 24
+                print >> sys.stderr, "STDOUT:\n", stdout, "= " * 24
+                print >> sys.stderr, "STDERR:\n", stderr, "= " * 24
 
             if self.options.stlpost == 'true':
                 cmd = self.options.stlpostcmd % (stl_fname)
-                try:  tty = open("/dev/tty", "w")
-                except: tty=subprocess.PIPE
+                try:
+                    tty = open("/dev/tty", "w")
+                except:
+                    tty = subprocess.PIPE
 
                 try:
-                    proc = subprocess.Popen(cmd, shell=True, stdin=tty, stdout=tty, stderr=tty)
+                    proc = subprocess.Popen(cmd, shell=True,
+                                            stdin=tty, stdout=tty, stderr=tty)
                 except OSError as e:
-                    raise OSError("%s failed: errno=%d %s" % (cmd, e.errno, e.strerror))
+                    raise OSError("%s failed: errno=%d %s" %
+                                  (cmd, e.errno, e.strerror))
 
                 stdout, stderr = proc.communicate()
-                if stdout or stderr: print >> sys.stderr, "CMD: ", cmd,  "\n","= " * 24
-                if stdout: print >> sys.stderr, "STDOUT:\n", stdout, "= " * 24
-                if stderr: print >> sys.stderr, "STDERR:\n", stderr, "= " * 24
+                if stdout or stderr:
+                    print >> sys.stderr, "CMD: ", cmd, "\n", "= " * 24
+                if stdout:
+                    print >> sys.stderr, "STDOUT:\n", stdout, "= " * 24
+                if stderr:
+                    print >> sys.stderr, "STDERR:\n", stderr, "= " * 24
 
 
 if __name__ == '__main__':
