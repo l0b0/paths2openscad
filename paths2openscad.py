@@ -547,7 +547,7 @@ class OpenSCAD(inkex.Effect):
             id = re.sub('[^A-Za-z0-9_]+', '', rawid)
         self.f.write('module poly_' + id + '(h)\n{\n')
         self.f.write('  scale([25.4/%g, -25.4/%g, 1]) union()\n  {\n' %
-            (self.dpi, self.dpi))
+                     (self.dpi, self.dpi))
 
         # And add the call to the call list
         # Height is set by the overall module parameter
