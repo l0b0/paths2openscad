@@ -1077,8 +1077,7 @@ fudge = 0.1;
                 pass
             if len < 1000:
                 print >> sys.stderr, "CMD: %s", cmd
-                print >> sys.stderr, "WARNING: %s is very small: %d bytes." %
-                (stl_fname, len)
+                print >> sys.stderr, "WARNING: %s is very small: %d bytes." % (stl_fname, len)
                 print >> sys.stderr, "= " * 24
                 print >> sys.stderr, "STDOUT:\n", stdout, "= " * 24
                 print >> sys.stderr, "STDERR:\n", stderr, "= " * 24
