@@ -12,32 +12,46 @@
 
 <param name="tab" type="notebook">
   <page name="splash" _gui-text="Paths to OpenSCAD">
-    <_param name="header" type="description" xml:space="preserve">
-The height parameter specifies how high in millimeters to
-extrude the polygons.
+    <param name="fname" type="string" _gui-text="Output file">~/inkscape.scad</param>
+    <param name="height" type="float" min="0" max="1000" precision="2" _gui-text="Height (mm)">5.0</param>
+    <_param name="height_help" type="description">Specify how high in millimeters to extrude the polygons.</_param>
 
-The smoothing parameter describes how smoothly to render
-curves. Use smaller values for smoother curves.
+    <param name="smoothness" type="float" min="0.0001" max="5" _gui-text="Smoothing">0.2</param>
+    <_param name="smoothness_help" type="description">Define how smoothly to render curves. Use smaller values for smoother curves.</_param>
 
+    <param name="autoheight" type="boolean" _gui-text="Auto Height">false</param>
+    <_param name="autoheight_help" type="description">Set the extruded height for a specific polygon based on its description or ID. See the Auto Height tab.
+    </_param>
+
+    <param name="scad2stl" type="boolean" _gui-text="Convert to STL">false</param>
+    <_param name="scad2stl_help" type="description">Also save an .stl file next to the specified output file. Use '{SCAD}' for the openSCAD input and '{STL}' for the STL output in the following </_param>
+    <!-- CAUTION: keep this command in sync with the default INX_SCAD2STL in paths2openscad.py -->
+    <param name="scad2stlcmd" type="string" _gui-text="  command: ">openscad '{SCAD}' -o '{STL}'</param>
+
+    <param name="stlpost" type="boolean" _gui-text="STL postprocessing">false</param>
+    <_param name="stlpost_help" type="description">Start e.g. a slicer after running the command above. Use '{STL}' for the STL file with the following</_param>
+    <!-- CAUTION: keep this command in sync with the default INX_STL_POSTPROCESSING in paths2openscad.py -->
+    <param name="stlpostcmd" type="string" _gui-text="  command: ">cura '{STL}' &amp;</param>
+
+  </page>
+  <page name="autoheight" _gui-text="Auto Height">
+    <_param name="autoheight" type="description" xml:space="preserve">
 The auto height option sets the extruded height for
 a specific polygon based on its description or ID.
 
-If the polygon's ID  is in either name_NNN_mm or
-name_NNN_NNN_mm format, the NNN_(NNN_)mm part of
-the name is translated into height in milimeters.
+If the polygon's ID is in either name_XXX_mm or name_XXXmm
+format, then XXX is translated into height in millimeters.
+Use . or _ as separator for a decimal number.
+Note that all whitespace or comma are saved as '_' in ID.
 
 If the polygon's description contains line like
 height: XXX mm
 where XXX is any decimal number (use . as separator),
-the height is set to XXX milimeters.
+then the height is set to XXX millimeters.
 Note that the description has preference over ID.
 
-Otherwise, the height parameter is used
-</_param>
-    <param name="fname" type="string" _gui-text="Output file">~/inkscape.scad</param>
-    <param name="height" type="float" min="0" max="1000" precision="2" _gui-text="Height (mm)">5.0</param>
-    <param name="smoothness" type="float" min="0.0001" max="5" _gui-text="Smoothing">0.2</param>
-    <param name="autoheight" type="boolean" _gui-text="Auto Height">false</param>
+Otherwise, the height parameter is used.
+   </_param>
   </page>
   <page name="info" _gui-text="About...">
     <_param name="aboutpage" type="description" xml:space="preserve">
@@ -56,11 +70,14 @@ will not appear as you expect in OpenSCAD
 
 Inkscape's units of pixels are converted
 to millimeters using the SVG Standard's
-definition of 90 pixels = 1 inch.
+definition of 90 pixels = 1 inch -- since
+inkscape 0.92: 96 pixels = 1 inch.
 
-v0.11
+v0.12
 Dan Newman (dan newman @ mtbaldy us)
 Josef Skladanka (jskladan @ redhat com)
+Juergen Weigert (juergen @ fabmail org)
+<!-- keep the version numnber in sync with paths2openscad.py header comments -->
 </_param>
   </page>
 </param>

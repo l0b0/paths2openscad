@@ -18,6 +18,13 @@
 
 # 15 August 2014
 #   Updated by Josef Skladanka to automatically set extruded heights
+#
+# 2017-03-11, juergen@fabmail.org
+#   0.12        parse svg width="400mm" correctly. Came out downscaled by 3...
+#
+#
+# CAUTION: keep the version numnber in sync with paths2openscad.inx about page
+# CAUTION: indentation and whitespace issues due to pep8 compatibility.
 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -33,6 +40,8 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
+import os
+import sys
 import os.path
 import inkex
 import simplepath
@@ -45,11 +54,17 @@ import string
 
 DEFAULT_WIDTH = 100
 DEFAULT_HEIGHT = 100
-RE_AUTO_HEIGHT_ID = re.compile(r".*?_(\d+(?:_\d+)?)_mm$")
+# Parse all these as 56.7 mm height:
+#  "path1234_56_7_mm", "pat1234____57.7mm", "path1234_57.7__mm"
+RE_AUTO_HEIGHT_ID = re.compile(r".*?_+(\d+(?:[_\.]\d+)?)_*mm$")
 RE_AUTO_HEIGHT_DESC = re.compile(
-    r"^(?:ht|height):\s*(\d+(?:\.\d+)?) mm$",
+    r"^(?:ht|height):\s*(\d+(?:\.\d+)?) ?mm$",
     re.MULTILINE)
 DESC_TAGS = ['desc', inkex.addNS('desc', 'svg')]
+
+# CAUTION: keep these defaults in sync with paths2openscad.inx
+INX_SCAD2STL = os.getenv('INX_SCAD2STL', "openscad '{SCAD}' -o '{STL}'")
+INX_STL_POSTPROCESSING = os.getenv('INX_STL_POSTPROCESSING', "cura '{STL}' &")
 
 
 def parseLengthWithUnits(str):
@@ -59,14 +74,16 @@ def parseLengthWithUnits(str):
     units of px, and units of %.  Everything else, it returns None for.
     There is a more general routine to consider in scour.py if more
     generality is ever needed.
+    With inkscape 0.91 we need other units too: e.g. svg:width="400mm"
     '''
 
     u = 'px'
     s = str.strip()
-    if s[-2:] == 'px':
+    if s[-2:] in ('px', 'pt', 'pc', 'mm', 'cm', 'in', 'ft'):
+        u = s[-2:]
         s = s[:-2]
-    elif s[-1:] == '%':
-        u = '%'
+    elif s[-1:] in ('m', '%'):
+        u = s[-1:]
         s = s[:-1]
 
     try:
@@ -261,6 +278,27 @@ class OpenSCAD(inkex.Effect):
             '--autoheight', dest='autoheight', type='string', default='false',
             action='store', help='Set heights automatically')
 
+        self.OptionParser.add_option(
+            '--scad2stl', dest='scad2stl', type='string', default='false',
+            action='store',
+            help='Also convert to STL ( details see --scad2stlcmd option )')
+        self.OptionParser.add_option(
+            '--scad2stlcmd', dest='scad2stlcmd', type='string',
+            default=INX_SCAD2STL, action='store',
+            help='Command used to convert to STL. Use {SCAD} for the ' +
+            'openSCAD input and {STL} for the STL output file.')
+
+        self.OptionParser.add_option(
+            '--stlpost', dest='stlpost', type='string', default='false',
+            action='store', help='Start e.g. a slicer. This implies the ' +
+            '--scad2stl option. ( see --stlpostcmd)')
+        self.OptionParser.add_option(
+            '--stlpostcmd', dest='stlpostcmd', type='string',
+            default=INX_STL_POSTPROCESSING, action='store',
+            help='Command used for post processing an STL file ' +
+            '(typically a slicer). Use {STL} for the STL filename.')
+
+        self.dpi = 90.0                # factored out for inkscape-0.92
         self.cx = float(DEFAULT_WIDTH) / 2.0
         self.cy = float(DEFAULT_HEIGHT) / 2.0
         self.xmin, self.xmax = (1.0E70, -1.0E70)
@@ -299,6 +337,7 @@ class OpenSCAD(inkex.Effect):
         units of cm, ft, in, m, mm, pc, or pt.  Convert to pixels.
 
         Note that SVG defines 90 px = 1 in = 25.4 mm.
+        Note: Since inkscape 0.92 we use the CSS standard of 96 px = 1 in.
         '''
 
         str = self.document.getroot().get(name)
@@ -308,21 +347,21 @@ class OpenSCAD(inkex.Effect):
                 # Couldn't parse the value
                 return None
             elif (u == 'mm'):
-                return float(v) * (90.0 / 25.4)
+                return float(v) * (self.dpi / 25.4)
             elif (u == 'cm'):
-                return float(v) * (90.0 * 10.0 / 25.4)
+                return float(v) * (self.dpi * 10.0 / 25.4)
             elif (u == 'm'):
-                return float(v) * (90.0 * 1000.0 / 25.4)
+                return float(v) * (self.dpi * 1000.0 / 25.4)
             elif (u == 'in'):
-                return float(v) * 90.0
+                return float(v) * self.dpi
             elif (u == 'ft'):
-                return float(v) * 12.0 * 90.0
+                return float(v) * 12.0 * self.dpi
             elif (u == 'pt'):
                 # Use modern "Postscript" points of 72 pt = 1 in instead
                 # of the traditional 72.27 pt = 1 in
-                return float(v) * (90.0 / 72.0)
+                return float(v) * (self.dpi / 72.0)
             elif (u == 'pc'):
-                return float(v) * (90.0 / 6.0)
+                return float(v) * (self.dpi / 6.0)
             elif (u == 'px'):
                 return float(v)
             else:
@@ -342,6 +381,20 @@ class OpenSCAD(inkex.Effect):
 
         self.docHeight = self.getLength('height', DEFAULT_HEIGHT)
         self.docWidth = self.getLength('width', DEFAULT_WIDTH)
+        inkscape_version = self.document.getroot().get(
+            "{http://www.inkscape.org/namespaces/inkscape}version")
+        # a simple 'inkscape:version' does not work here. sigh....
+        if inkscape_version:
+            '''
+            inkscape:version="0.91 r"
+            inkscape:version="0.92.0 ..."
+            See also https://github.com/fablabnbg/paths2openscad/issues/1
+            '''
+            m = re.match(r"(\d+)\.(\d+)", inkscape_version)
+            if m:
+                if int(m.group(1)) > 0 or int(m.group(2)) > 91:
+                    self.dpi = 96                # 96dpi since inkscape 0.92
+
         if (self.docHeight is None) or (self.docWidth is None):
             return False
         else:
@@ -487,14 +540,16 @@ class OpenSCAD(inkex.Effect):
                     contained_by[i].append(j)
 
         # Generate an OpenSCAD module for this path
-        id = node.get('id', '')
-        if (id is None) or (id == ''):
+        rawid = node.get('id', '')
+        if (rawid is None) or (rawid == ''):
             id = str(self.pathid) + 'x'
+            rawid = id
             self.pathid += 1
         else:
-            id = re.sub('[^A-Za-z0-9_]+', '', id)
+            id = re.sub('[^A-Za-z0-9_]+', '', rawid)
         self.f.write('module poly_' + id + '(h)\n{\n')
-        self.f.write('  scale([25.4/90, -25.4/90, 1]) union()\n  {\n')
+        self.f.write('  scale([25.4/%g, -25.4/%g, 1]) union()\n  {\n' %
+                     (self.dpi, self.dpi))
 
         # And add the call to the call list
         # Height is set by the overall module parameter
@@ -509,7 +564,7 @@ class OpenSCAD(inkex.Effect):
                         height = found_height[-1]
                         break
             else:
-                found_height = RE_AUTO_HEIGHT_ID.findall(id)
+                found_height = RE_AUTO_HEIGHT_ID.findall(rawid)
                 if found_height:
                     height = found_height[-1].replace("_", ".")
 
@@ -797,7 +852,7 @@ class OpenSCAD(inkex.Effect):
                     '0 1 0 %f,%f ' % (x2, cy) + \
                     'A %f,%f ' % (rx, ry) + \
                     '0 1 0 %f,%f' % (x1, cy)
-                self.mapPathVertices(d, node, matNew)
+                self.getPathVertices(d, node, matNew)
 
             elif node.tag == inkex.addNS('pattern', 'svg') or \
                     node.tag == 'pattern':
@@ -958,13 +1013,10 @@ class OpenSCAD(inkex.Effect):
 
         # Determine which polygons lie entirely within other polygons
         try:
-            if '/' == os.sep:
-                self.f = open(os.path.expanduser(self.options.fname), 'w')
-            else:
-                self.f = open(
-                    os.path.expanduser(
-                        self.options.fname).replace('/', os.sep),
-                    'w')
+            full_fname = os.path.expanduser(self.options.fname)
+            if '/' != os.sep:
+                full_fname = full_fname.replace('/', os.sep)
+            self.f = open(full_fname, 'w')
 
             self.f.write('''
 // Module names are of the form poly_<inkscape-path-id>().  As a result,
@@ -997,9 +1049,67 @@ fudge = 0.1;
 
             # The module that calls all the other ones.
             self.f.write('}\n\n%s(%s);\n' % (name, self.options.height))
+            self.f.close()
 
         except:
-            inkex.errormsg('Unable to open the file ' + self.options.fname)
+            inkex.errormsg('Unable to write file ' + self.options.fname)
+
+        if self.options.scad2stl == 'true' or self.options.stlpost == 'true':
+            stl_fname = re.sub(r"\.SCAD", "", full_fname, flags=re.I) + '.stl'
+            cmd = self.options.scad2stlcmd.format(
+                **{'SCAD': full_fname, 'STL': stl_fname})
+            try:
+                os.unlink(stl_fname)
+            except:
+                pass
+
+            import subprocess
+            try:
+                proc = subprocess.Popen(cmd, shell=True, stdin=subprocess.PIPE,
+                                        stdout=subprocess.PIPE,
+                                        stderr=subprocess.PIPE)
+            except OSError as e:
+                raise OSError("{0} failed: errno={1} {2}".format(
+                              cmd, e.errno, e.strerror))
+            stdout, stderr = proc.communicate()
+
+            len = -1
+            try:
+                len = os.path.getsize(stl_fname)
+            except:
+                pass
+            if len < 1000:
+                print >> sys.stderr, "CMD: {0}".format(cmd)
+                # pep8 enforced 80 columns limit is here: --------------------v
+                print >> sys.stderr, "WARNING: {0} is very small: {1} bytes.".\
+                    format(stl_fname, len)
+                print >> sys.stderr, "= " * 24
+                print >> sys.stderr, "STDOUT:\n", stdout, "= " * 24
+                print >> sys.stderr, "STDERR:\n", stderr, "= " * 24
+                if len <= 0:  # something is wrong. better stop here
+                    self.options.stlpost = 'false'
+
+            if self.options.stlpost == 'true':
+                cmd = self.options.stlpostcmd.format(**{'STL': stl_fname})
+                try:
+                    tty = open("/dev/tty", "w")
+                except:
+                    tty = subprocess.PIPE
+
+                try:
+                    proc = subprocess.Popen(cmd, shell=True,
+                                            stdin=tty, stdout=tty, stderr=tty)
+                except OSError as e:
+                    raise OSError("%s failed: errno=%d %s" %
+                                  (cmd, e.errno, e.strerror))
+
+                stdout, stderr = proc.communicate()
+                if stdout or stderr:
+                    print >> sys.stderr, "CMD: ", cmd, "\n", "= " * 24
+                if stdout:
+                    print >> sys.stderr, "STDOUT:\n", stdout, "= " * 24
+                if stderr:
+                    print >> sys.stderr, "STDERR:\n", stderr, "= " * 24
 
 
 if __name__ == '__main__':
