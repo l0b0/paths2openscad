@@ -284,9 +284,9 @@ class OpenSCAD(inkex.Effect):
             help='Also convert to STL ( details see --scad2stlcmd option )')
         self.OptionParser.add_option(
             '--scad2stlcmd', dest='scad2stlcmd', type='string',
-            default=INX_SCAD2STL,
-            action='store', help='Command used to convert to STL. ' +
-            'Use {SCAD} for the openSCAD input and {STL} for the STL output file.')
+            default=INX_SCAD2STL, action='store',
+            help='Command used to convert to STL. Use {SCAD} for the ' +
+            'openSCAD input and {STL} for the STL output file.')
 
         self.OptionParser.add_option(
             '--stlpost', dest='stlpost', type='string', default='false',
@@ -1056,7 +1056,8 @@ fudge = 0.1;
 
         if self.options.scad2stl == 'true' or self.options.stlpost == 'true':
             stl_fname = re.sub(r"\.SCAD", "", full_fname, flags=re.I) + '.stl'
-            cmd = self.options.scad2stlcmd.format(**{'SCAD':full_fname, 'STL':stl_fname})
+            cmd = self.options.scad2stlcmd.format(
+                **{'SCAD': full_fname, 'STL': stl_fname})
             try:
                 os.unlink(stl_fname)
             except:
@@ -1085,9 +1086,10 @@ fudge = 0.1;
                 print >> sys.stderr, "= " * 24
                 print >> sys.stderr, "STDOUT:\n", stdout, "= " * 24
                 print >> sys.stderr, "STDERR:\n", stderr, "= " * 24
+		self.options.stlpost = 'false'	# something is wrong. better stop here.
 
             if self.options.stlpost == 'true':
-                cmd = self.options.stlpostcmd.format(**{'STL':stl_fname})
+                cmd = self.options.stlpostcmd.format(**{'STL': stl_fname})
                 try:
                     tty = open("/dev/tty", "w")
                 except:
