@@ -22,6 +22,7 @@
 # 2017-03-11, juergen@fabmail.org
 #   0.12        parse svg width="400mm" correctly. Came out downscaled by 3...
 #
+#
 # CAUTION: keep the version numnber in sync with paths2openscad.inx about page
 # CAUTION: indentation and whitespace issues due to pep8 compatibility.
 
@@ -62,8 +63,8 @@ RE_AUTO_HEIGHT_DESC = re.compile(
 DESC_TAGS = ['desc', inkex.addNS('desc', 'svg')]
 
 # CAUTION: keep these defaults in sync with paths2openscad.inx
-INX_SCAD2STL = os.getenv('INX_SCAD2STL', "openscad '%s' -o '%s'")
-INX_STL_POSTPROCESSING = os.getenv('INX_STL_POSTPROCESSING', "cura '%s' &")
+INX_SCAD2STL = os.getenv('INX_SCAD2STL', "openscad '{SCAD}' -o '{STL}'")
+INX_STL_POSTPROCESSING = os.getenv('INX_STL_POSTPROCESSING', "cura '{STL}' &")
 
 
 def parseLengthWithUnits(str):
@@ -284,7 +285,8 @@ class OpenSCAD(inkex.Effect):
         self.OptionParser.add_option(
             '--scad2stlcmd', dest='scad2stlcmd', type='string',
             default=INX_SCAD2STL,
-            action='store', help='Command used to convert to STL')
+            action='store', help='Command used to convert to STL. ' +
+            'Use {SCAD} for the openSCAD input and {STL} for the STL output file.')
 
         self.OptionParser.add_option(
             '--stlpost', dest='stlpost', type='string', default='false',
@@ -294,7 +296,7 @@ class OpenSCAD(inkex.Effect):
             '--stlpostcmd', dest='stlpostcmd', type='string',
             default=INX_STL_POSTPROCESSING, action='store',
             help='Command used for post processing an STL file ' +
-            '(typically a slicer)')
+            '(typically a slicer). Use {STL} for the STL filename.')
 
         self.dpi = 90.0                # factored out for inkscape-0.92
         self.cx = float(DEFAULT_WIDTH) / 2.0
@@ -1054,7 +1056,7 @@ fudge = 0.1;
 
         if self.options.scad2stl == 'true' or self.options.stlpost == 'true':
             stl_fname = re.sub(r"\.SCAD", "", full_fname, flags=re.I) + '.stl'
-            cmd = self.options.scad2stlcmd % (full_fname, stl_fname)
+            cmd = self.options.scad2stlcmd.format(**{'SCAD':full_fname, 'STL':stl_fname})
             try:
                 os.unlink(stl_fname)
             except:
@@ -1066,8 +1068,8 @@ fudge = 0.1;
                                         stdout=subprocess.PIPE,
                                         stderr=subprocess.PIPE)
             except OSError as e:
-                raise OSError("%s failed: errno=%d %s" %
-                              (cmd, e.errno, e.strerror))
+                raise OSError("{0} failed: errno={1} {2}".format(
+                              cmd, e.errno, e.strerror))
             stdout, stderr = proc.communicate()
 
             len = -1
@@ -1076,14 +1078,16 @@ fudge = 0.1;
             except:
                 pass
             if len < 1000:
-                print >> sys.stderr, "CMD: %s", cmd
-                print >> sys.stderr, "WARNING: %s is very small: %d bytes." % (stl_fname, len)
+                print >> sys.stderr, "CMD: {0}".format(cmd)
+                # pep8 enforced 80 columns limit is here: --------------------v
+                print >> sys.stderr, "WARNING: {0} is very small: {1} bytes.".\
+                    format(stl_fname, len)
                 print >> sys.stderr, "= " * 24
                 print >> sys.stderr, "STDOUT:\n", stdout, "= " * 24
                 print >> sys.stderr, "STDERR:\n", stderr, "= " * 24
 
             if self.options.stlpost == 'true':
-                cmd = self.options.stlpostcmd % (stl_fname)
+                cmd = self.options.stlpostcmd.format(**{'STL':stl_fname})
                 try:
                     tty = open("/dev/tty", "w")
                 except:

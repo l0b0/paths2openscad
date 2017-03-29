@@ -24,14 +24,14 @@
     </_param>
 
     <param name="scad2stl" type="boolean" _gui-text="Convert to STL">false</param>
-    <_param name="scad2stl_help" type="description">Also save an .stl file next to the specified output file using the following </_param>
+    <_param name="scad2stl_help" type="description">Also save an .stl file next to the specified output file. Use '{SCAD}' for the openSCAD input and '{STL}' for the STL output in the following </_param>
     <!-- CAUTION: keep this command in sync with the default INX_SCAD2STL in paths2openscad.py -->
-    <param name="scad2stlcmd" type="string" _gui-text="  command: ">openscad '%s' -o '%s'</param>
+    <param name="scad2stlcmd" type="string" _gui-text="  command: ">openscad '{SCAD}' -o '{STL}'</param>
 
     <param name="stlpost" type="boolean" _gui-text="STL postprocessing">false</param>
-    <_param name="stlpost_help" type="description">Start e.g. a slicer. This runs the command above and then the following</_param>
+    <_param name="stlpost_help" type="description">Start e.g. a slicer after running the command above. Use '{STL}' for the STL file with the following</_param>
     <!-- CAUTION: keep this command in sync with the default INX_STL_POSTPROCESSING in paths2openscad.py -->
-    <param name="stlpostcmd" type="string" _gui-text="  command: ">cura '%s' &amp;</param>
+    <param name="stlpostcmd" type="string" _gui-text="  command: ">cura '{STL}' &amp;</param>
 
   </page>
   <page name="autoheight" _gui-text="Auto Height">
