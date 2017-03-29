@@ -1086,7 +1086,8 @@ fudge = 0.1;
                 print >> sys.stderr, "= " * 24
                 print >> sys.stderr, "STDOUT:\n", stdout, "= " * 24
                 print >> sys.stderr, "STDERR:\n", stderr, "= " * 24
-		self.options.stlpost = 'false'	# something is wrong. better stop here.
+                if len <= 0:  # something is wrong. better stop here
+                    self.options.stlpost = 'false'
 
             if self.options.stlpost == 'true':
                 cmd = self.options.stlpostcmd.format(**{'STL': stl_fname})
